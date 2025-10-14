@@ -54,7 +54,8 @@ public abstract class AbstractMapper<T extends IBusinessObject> {
     public int count() {
         Connection connection = ConnectionUtils.getConnection();
 
-        try (PreparedStatement stmt = connection.prepareStatement(getCountQuery());
+        try (
+                PreparedStatement stmt = connection.prepareStatement(getCountQuery());
              ResultSet rs = stmt.executeQuery()) {
 
             if (rs.next()) {
