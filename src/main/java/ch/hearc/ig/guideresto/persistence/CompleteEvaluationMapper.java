@@ -41,8 +41,11 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                     );
 
                     GradeMapper gradeMapper = new GradeMapper(connection);
-                    Set<Grade> grades = gradeMapper.findByEvaluationId(evaluationId); //ajouter cette méthode dans GradeMapper!
-                    evaluation.setGrades(grades);
+                    Set<Grade> grades = gradeMapper.findByEvaluationId(evaluationId);
+                    for (Grade grade : grades) { //each grade knows its evaluation
+                        grade.setEvaluation(evaluation);
+                    }
+                    evaluation.setGrades(grades); //the evaluation knows its grades
 
                     return evaluation;
                 }
