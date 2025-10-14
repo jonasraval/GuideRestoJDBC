@@ -50,6 +50,34 @@ public class GradeMapper extends AbstractMapper {
         return null;
     }
 
+    public Set<Grade> findByEvaluationId(int evaluationId) {
+        Set<Grade> grades = new HashSet<>();
+        String query = "SELECT * FROM notes WHERE fk_comm = ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, evaluationId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                EvaluationCriteriaMapper criteriaMapper = new EvaluationCriteriaMapper(connection);
+
+                while (rs.next()) {
+                    int gradeId = rs.getInt("numero");
+                    int note = rs.getInt("note");
+                    int criteriaId = rs.getInt("fk_crit");
+
+                    EvaluationCriteria criteria = criteriaMapper.findById(criteriaId);
+
+                    Grade grade = new Grade(gradeId, note, null, criteria);
+                    grades.add(grade);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error finding grades for evaluation ID " + evaluationId, e);
+        }
+
+        return grades;
+    }
+
+
     @Override
     public Set findAll() {
         Set<Grade> grades = new HashSet<>();
