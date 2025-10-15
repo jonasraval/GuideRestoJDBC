@@ -181,7 +181,7 @@ public class Application {
 
         if (choice.equals("NEW")) {
             City city = new City();
-            city.setId(1); // A modifier quand on a la connexion avec la BDD.
+            city.setId(Integer.valueOf(1)); // A modifier quand on a la connexion avec la BDD.
             System.out.println("Veuillez entrer le NPA de la nouvelle ville : ");
             city.setZipCode(readString());
             System.out.println("Veuillez entrer le nom de la nouvelle ville : ");
@@ -366,10 +366,10 @@ public class Application {
     private static void proceedRestaurantMenu(int choice, Restaurant restaurant) {
         switch (choice) {
             case 1:
-                addBasicEvaluation(restaurant, true);
+                addBasicEvaluation(restaurant, Boolean.valueOf(true));
                 break;
             case 2:
-                addBasicEvaluation(restaurant, false);
+                addBasicEvaluation(restaurant, Boolean.valueOf(false));
                 break;
             case 3:
                 evaluateRestaurant(restaurant);
