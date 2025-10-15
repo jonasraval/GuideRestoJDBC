@@ -13,13 +13,13 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
     private final Connection connection;
 
     private final RestaurantTypeMapper restaurantTypeMapper;
-    private final EvaluationCriteriaMapper evaluationMapper;
+    private final CompleteEvaluationMapper completeEvaluationMapper;
     private final CityMapper cityMapper;
 
     public RestaurantMapper(Connection connection) {
         this.connection = connection;
         this.restaurantTypeMapper = new RestaurantTypeMapper(connection);
-        this.evaluationMapper = new EvaluationCriteriaMapper(connection);
+        this.completeEvaluationMapper = new CompleteEvaluationMapper(connection);
         this.cityMapper = new CityMapper(connection);
     }
 
@@ -49,8 +49,9 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
                     restaurant.setType(restaurantType);
 
-                    Set<Evaluation> evaluationsList = evaluationMapper.findByRestaurantId(id);
-                    restaurant.setEvaluations(evaluationsList);
+                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurantId(restaurant.getId());
+                    Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
+                    restaurant.setEvaluations(evaluations);
 
                     return restaurant;
                 }
@@ -87,8 +88,9 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                 RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
                 restaurant.setType(restaurantType);
 
-                Set<Evaluation> evaluationsList = evaluationMapper.findByRestaurantId(restaurant.getId());
-                restaurant.setEvaluations(evaluationsList);
+                Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurantId(restaurant.getId());
+                Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
+                restaurant.setEvaluations(evaluations);
 
                 restaurantSet.add(restaurant);
             }

@@ -1,9 +1,6 @@
 package ch.hearc.ig.guideresto.persistence;
 
-import ch.hearc.ig.guideresto.business.CompleteEvaluation;
-import ch.hearc.ig.guideresto.business.Grade;
-import ch.hearc.ig.guideresto.business.IBusinessObject;
-import ch.hearc.ig.guideresto.business.Restaurant;
+import ch.hearc.ig.guideresto.business.*;
 
 import java.sql.*;
 import java.util.HashSet;
@@ -31,7 +28,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                     int restaurantId = rs.getInt("fk_rest");
 
                     RestaurantMapper restaurantMapper = new RestaurantMapper(connection);
-                    Restaurant restaurant = (Restaurant) restaurantMapper.findbyId(restaurantId);
+                    Restaurant restaurant = (Restaurant) restaurantMapper.findById(restaurantId);
 
                     CompleteEvaluation evaluation = new CompleteEvaluation(
                             evaluationDate,
@@ -57,8 +54,8 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
     }
 
     @Override
-    public Set<IBusinessObject> findAll() {
-        Set<IBusinessObject> evaluations = new HashSet<>();
+    public Set<CompleteEvaluation> findAll() {
+        Set<CompleteEvaluation> evaluations = new HashSet<>();
         String selectQuery = "SELECT * FROM commentaires";
 
         try (PreparedStatement s = connection.prepareStatement(selectQuery);
@@ -71,7 +68,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                 int restaurantId = rs.getInt("fk_rest");
 
                 RestaurantMapper restaurantMapper = new RestaurantMapper(connection);
-                Restaurant restaurant = (Restaurant) restaurantMapper.findbyId(restaurantId);
+                Restaurant restaurant = (Restaurant) restaurantMapper.findById(restaurantId);
 
                 CompleteEvaluation evaluation = new CompleteEvaluation(
                         evaluationDate,
@@ -92,6 +89,50 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
         }
         return evaluations;
     }
+
+    public Set<CompleteEvaluation> findByRestaurantId(int restaurantId) {
+        Set<CompleteEvaluation> evaluations = new HashSet<>();
+        String query = "SELECT * FROM commentaires WHERE fk_rest = ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setInt(1, restaurantId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                GradeMapper gradeMapper = new GradeMapper(connection);
+                RestaurantMapper restaurantMapper = new RestaurantMapper(connection);
+
+                while (rs.next()) {
+                    int evaluationId = rs.getInt("numero");
+                    Date evaluationDate = rs.getDate("date_eval");
+                    String comment = rs.getString("commentaire");
+                    String username = rs.getString("nom_utilisateur");
+                    Restaurant restaurant = (Restaurant) restaurantMapper.findById(restaurantId);
+
+                    CompleteEvaluation evaluation = new CompleteEvaluation(
+                            evaluationId,
+                            evaluationDate,
+                            restaurant,
+                            comment,
+                            username
+                    );
+                    Set<Grade> grades = gradeMapper.findByEvaluationId(evaluationId);
+
+                    for (Grade grade : grades) {
+                        grade.setEvaluation(evaluation);
+                    }
+                    evaluation.setGrades(grades);
+
+                    evaluations.add(evaluation);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error finding evaluations for restaurant ID " + restaurantId, e);
+        }
+
+        return evaluations;
+    }
+
+
 
     @Override
     public IBusinessObject create(IBusinessObject object) {

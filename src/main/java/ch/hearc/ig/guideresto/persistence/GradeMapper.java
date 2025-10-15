@@ -37,8 +37,8 @@ public class GradeMapper extends AbstractMapper {
                         CompleteEvaluationMapper evaluationMapper = new CompleteEvaluationMapper(connection);
                         EvaluationCriteriaMapper criteriaMapper = new EvaluationCriteriaMapper(connection);
 
-                        CompleteEvaluation evaluation = evaluationMapper.findById(evaluationId);
-                        EvaluationCriteria criteria = criteriaMapper.findById(criteriaId);
+                        CompleteEvaluation evaluation = (CompleteEvaluation) evaluationMapper.findById(evaluationId);
+                        EvaluationCriteria criteria = (EvaluationCriteria) criteriaMapper.findById(criteriaId);
 
                         return new Grade(gradeId, note, evaluation, criteria);
                     }
@@ -64,7 +64,7 @@ public class GradeMapper extends AbstractMapper {
                     int note = rs.getInt("note");
                     int criteriaId = rs.getInt("fk_crit");
 
-                    EvaluationCriteria criteria = criteriaMapper.findById(criteriaId);
+                    EvaluationCriteria criteria = (EvaluationCriteria) criteriaMapper.findById(criteriaId);
 
                     Grade grade = new Grade(gradeId, note, null, criteria);
                     grades.add(grade);
@@ -95,8 +95,8 @@ public class GradeMapper extends AbstractMapper {
                 int evaluationId = rs.getInt("fk_comm");
                 int criteriaId = rs.getInt("fk_crit");
 
-                CompleteEvaluation evaluation = evaluationMapper.findById(evaluationId);
-                EvaluationCriteria criteria = criteriaMapper.findById(criteriaId);
+                CompleteEvaluation evaluation = (CompleteEvaluation) evaluationMapper.findById(evaluationId);
+                EvaluationCriteria criteria = (EvaluationCriteria) criteriaMapper.findById(criteriaId);
 
                 Grade grade = new Grade(gradeId, note, evaluation, criteria);
                 grades.add(grade);
