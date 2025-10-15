@@ -8,13 +8,17 @@ import java.util.Set;
 
 public class CompleteEvaluationMapper  extends AbstractMapper{
     private final Connection connection;
+    private final RestaurantMapper restaurantMapper;
+    private final GradeMapper gradeMapper;
 
     public CompleteEvaluationMapper(Connection connection) {
         this.connection = connection;
+        this.gradeMapper = new GradeMapper(connection);
+        this.restaurantMapper = new RestaurantMapper(connection);
     }
 
     @Override
-    public IBusinessObject findById(int id) {
+    public CompleteEvaluation findById(int id) {
         String selectQuery = "SELECT * FROM commentaires WHERE NUMERO = ?";
 
         try (PreparedStatement s = connection.prepareStatement(selectQuery)) {
@@ -27,8 +31,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                     String username = rs.getString("nom_utilisateur");
                     int restaurantId = rs.getInt("fk_rest");
 
-                    RestaurantMapper restaurantMapper = new RestaurantMapper(connection);
-                    Restaurant restaurant = (Restaurant) restaurantMapper.findById(restaurantId);
+                    Restaurant restaurant = restaurantMapper.findById(restaurantId);
 
                     CompleteEvaluation evaluation = new CompleteEvaluation(
                             evaluationDate,
@@ -37,7 +40,6 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                             username
                     );
 
-                    GradeMapper gradeMapper = new GradeMapper(connection);
                     Set<Grade> grades = gradeMapper.findByEvaluationId(evaluationId);
                     for (Grade grade : grades) { //each grade knows its evaluation
                         grade.setEvaluation(evaluation);
@@ -67,8 +69,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                 String username = rs.getString("nom_utilisateur");
                 int restaurantId = rs.getInt("fk_rest");
 
-                RestaurantMapper restaurantMapper = new RestaurantMapper(connection);
-                Restaurant restaurant = (Restaurant) restaurantMapper.findById(restaurantId);
+                Restaurant restaurant = restaurantMapper.findById(restaurantId);
 
                 CompleteEvaluation evaluation = new CompleteEvaluation(
                         evaluationDate,
@@ -77,7 +78,6 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                         username
                 );
 
-                GradeMapper gradeMapper = new GradeMapper(connection);
                 Set<Grade> grades = gradeMapper.findByEvaluationId(evaluationId); //ajouter cette méthode dans GradeMapper!
                 evaluation.setGrades(grades);
 
@@ -135,7 +135,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
 
 
     @Override
-    public IBusinessObject create(IBusinessObject object) {
+    public CompleteEvaluation create(IBusinessObject object) {
         if (!(object instanceof CompleteEvaluation evaluation)) {
             throw new IllegalArgumentException("Object must be an instance of CompleteEvaluation");
         }
@@ -239,7 +239,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
 
     @Override
     public boolean deleteById(int id) {
-        CompleteEvaluation evaluation = (CompleteEvaluation) findById(id);
+        CompleteEvaluation evaluation = findById(id);
 
         if (evaluation != null) {
             return delete(evaluation);
