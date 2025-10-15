@@ -1,9 +1,6 @@
 package ch.hearc.ig.guideresto.persistence;
 
-import ch.hearc.ig.guideresto.business.CompleteEvaluation;
-import ch.hearc.ig.guideresto.business.EvaluationCriteria;
-import ch.hearc.ig.guideresto.business.Grade;
-import ch.hearc.ig.guideresto.business.IBusinessObject;
+import ch.hearc.ig.guideresto.business.*;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -16,9 +13,13 @@ import java.util.Set;
 
 public class GradeMapper extends AbstractMapper {
     private final Connection connection;
+    private final EvaluationCriteriaMapper evaluationCriteriaMapper;
+    private final CompleteEvaluationMapper completeEvaluationMapper;
 
     public GradeMapper(Connection connection) {
         this.connection = connection;
+        this.completeEvaluationMapper = new CompleteEvaluationMapper(connection);
+        this.evaluationCriteriaMapper = new EvaluationCriteriaMapper(connection);
     }
 
     @Override
@@ -34,11 +35,9 @@ public class GradeMapper extends AbstractMapper {
                         int evaluationId = rs.getInt("fk_comm");
                         int criteriaId = rs.getInt("fk_crit");
 
-                        CompleteEvaluationMapper evaluationMapper = new CompleteEvaluationMapper(connection);
-                        EvaluationCriteriaMapper criteriaMapper = new EvaluationCriteriaMapper(connection);
 
-                        CompleteEvaluation evaluation = (CompleteEvaluation) evaluationMapper.findById(evaluationId);
-                        EvaluationCriteria criteria = (EvaluationCriteria) criteriaMapper.findById(criteriaId);
+                        CompleteEvaluation evaluation = completeEvaluationMapper.findById(evaluationId);
+                        EvaluationCriteria criteria = (EvaluationCriteria) evaluationCriteriaMapper.findById(criteriaId);
 
                         return new Grade(gradeId, note, evaluation, criteria);
                     }
@@ -57,14 +56,13 @@ public class GradeMapper extends AbstractMapper {
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
             stmt.setInt(1, evaluationId);
             try (ResultSet rs = stmt.executeQuery()) {
-                EvaluationCriteriaMapper criteriaMapper = new EvaluationCriteriaMapper(connection);
 
                 while (rs.next()) {
                     int gradeId = rs.getInt("numero");
                     int note = rs.getInt("note");
                     int criteriaId = rs.getInt("fk_crit");
 
-                    EvaluationCriteria criteria = (EvaluationCriteria) criteriaMapper.findById(criteriaId);
+                    EvaluationCriteria criteria = (EvaluationCriteria) evaluationCriteriaMapper.findById(criteriaId);
 
                     Grade grade = new Grade(gradeId, note, null, criteria);
                     grades.add(grade);
@@ -86,17 +84,14 @@ public class GradeMapper extends AbstractMapper {
         try (PreparedStatement stmt = connection.prepareStatement(selectQuery);
              ResultSet rs = stmt.executeQuery()) {
 
-            CompleteEvaluationMapper evaluationMapper = new CompleteEvaluationMapper(connection);
-            EvaluationCriteriaMapper criteriaMapper = new EvaluationCriteriaMapper(connection);
-
             while (rs.next()) {
                 int gradeId = rs.getInt("numero");
                 int note = rs.getInt("note");
                 int evaluationId = rs.getInt("fk_comm");
                 int criteriaId = rs.getInt("fk_crit");
 
-                CompleteEvaluation evaluation = (CompleteEvaluation) evaluationMapper.findById(evaluationId);
-                EvaluationCriteria criteria = (EvaluationCriteria) criteriaMapper.findById(criteriaId);
+                CompleteEvaluation evaluation = completeEvaluationMapper.findById(evaluationId);
+                EvaluationCriteria criteria = (EvaluationCriteria) evaluationCriteriaMapper.findById(criteriaId);
 
                 Grade grade = new Grade(gradeId, note, evaluation, criteria);
                 grades.add(grade);
