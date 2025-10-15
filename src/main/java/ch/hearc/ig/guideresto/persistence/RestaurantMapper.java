@@ -1,9 +1,6 @@
 package ch.hearc.ig.guideresto.persistence;
 
-import ch.hearc.ig.guideresto.business.Evaluation;
-import ch.hearc.ig.guideresto.business.Localisation;
-import ch.hearc.ig.guideresto.business.Restaurant;
-import ch.hearc.ig.guideresto.business.RestaurantType;
+import ch.hearc.ig.guideresto.business.*;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -15,16 +12,13 @@ import java.util.Set;
 public class RestaurantMapper extends AbstractMapper<Restaurant> {
     private final Connection connection;
 
-    private final LocalisationMapper localisationMapper;
     private final RestaurantTypeMapper restaurantTypeMapper;
     private final EvaluationMapper evaluationMapper;
 
     public RestaurantMapper(Connection connection,
-                            LocalisationMapper localisationMapper,
                             RestaurantTypeMapper restaurantTypeMapper,
                             EvaluationMapper evaluationMapper) {
         this.connection = connection;
-        this.localisationMapper = localisationMapper;
         this.restaurantTypeMapper = restaurantTypeMapper;
         this.evaluationMapper = evaluationMapper;
 
@@ -45,9 +39,12 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     restaurant.setDescription(rs.getString("DESCRIPTION"));
                     restaurant.setWebsite(rs.getString("WEBSITE"));
 
-                    int localisationId = rs.getInt("ADRESSE");
-                    Localisation localisation = localisationMapper.findById(localisationId);
+                    String adresse = rs.getString("ADRESSE");
+                    int cityId = rs.getInt("FK_VILL");
+                    City city = cityMapper.findById(cityId);
+                    Localisation localisation = new Localisation(adresse, city);
                     restaurant.setAddress(localisation);
+
 
                     int typeId = rs.getInt("TYPE_ID");
                     RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
@@ -81,8 +78,10 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                 restaurant.setDescription(rs.getString("DESCRIPTION"));
                 restaurant.setWebsite(rs.getString("WEBSITE"));
 
-                int localisationId = rs.getInt("ADRESSE");
-                Localisation localisation = localisationMapper.findById(localisationId);
+                String adresse = rs.getString("ADRESSE");
+                int cityId = rs.getInt("FK_VILL");
+                City city = cityMapper.findById(cityId);
+                Localisation localisation = new Localisation(adresse, city);
                 restaurant.setAddress(localisation);
 
                 int typeId = rs.getInt("TYPE_ID");
