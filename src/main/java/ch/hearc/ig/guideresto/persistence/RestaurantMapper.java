@@ -13,15 +13,14 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
     private final Connection connection;
 
     private final RestaurantTypeMapper restaurantTypeMapper;
-    private final EvaluationMapper evaluationMapper;
+    private final EvaluationCriteriaMapper evaluationMapper;
+    private final CityMapper cityMapper;
 
-    public RestaurantMapper(Connection connection,
-                            RestaurantTypeMapper restaurantTypeMapper,
-                            EvaluationMapper evaluationMapper) {
+    public RestaurantMapper(Connection connection) {
         this.connection = connection;
-        this.restaurantTypeMapper = restaurantTypeMapper;
-        this.evaluationMapper = evaluationMapper;
-
+        this.restaurantTypeMapper = new RestaurantTypeMapper(connection);
+        this.evaluationMapper = new EvaluationCriteriaMapper(connection);
+        this.cityMapper = new CityMapper(connection);
     }
 
 
