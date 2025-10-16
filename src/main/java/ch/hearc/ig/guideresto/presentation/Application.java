@@ -138,11 +138,7 @@ public class Application {
         System.out.println("Veuillez entrer une partie du nom recherché : ");
         String research = readString();
 
-        // Comme on ne peut pas faire de requête SQL avec la classe FakeItems, on trie les données manuellement.
-        // Il est évident qu'une fois que vous utiliserez une base de données, il ne faut PAS garder ce système.
-        //Set<Restaurant> fullList = FakeItems.getAllRestaurants();
         Set<Restaurant> filteredList = restaurantMapper.findByName(research);
-        //IL FAUT QU'ON AJOUTE CETTE METHODE DANS RESTAURANTMAPPER !
 
         Restaurant restaurant = pickRestaurant(filteredList);
 
@@ -262,7 +258,6 @@ public class Application {
         Restaurant restaurant = new Restaurant(null, name, description, website, street, city, restaurantType);
         city.getRestaurants().add(restaurant);
         restaurantType.getRestaurants().add(restaurant);
-        //FakeItems.getAllRestaurants().add(restaurant);
         restaurantMapper.create(restaurant);
 
         showRestaurant(restaurant);
@@ -456,7 +451,6 @@ public class Application {
         restaurant.setWebsite(readString());
         System.out.println("Nouveau type de restaurant : ");
 
-        //RestaurantType newType = pickRestaurantType(FakeItems.getRestaurantTypes());
         RestaurantType newType = pickRestaurantType(restaurantTypeMapper.findAll());
         if (newType != null && newType != restaurant.getType()) {
             restaurant.getType().getRestaurants().remove(restaurant); // Il faut d'abord supprimer notre restaurant puisque le type va peut-être changer

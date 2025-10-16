@@ -162,7 +162,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     restaurant.setName(rs.getString("NOM"));
                     restaurant.setDescription(rs.getString("DESCRIPTION"));
                     restaurant.setWebsite(rs.getString("WEBSITE"));
-                    
+
                     String adresse = rs.getString("ADRESSE");
                     int cityId = rs.getInt("FK_VILL");
                     City city = cityMapper.findById(cityId);
@@ -181,6 +181,45 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
             }
         } catch (SQLException ex) {
             throw new RuntimeException("Erreur lors de la recherche des restaurants pour le type ID " + typeId, ex);
+        }
+
+        return restaurantSet;
+    }
+
+    public Set<Restaurant> findByName(String name) {
+        Set<Restaurant> restaurantSet = new HashSet<>();
+        String sql = "SELECT * FROM RESTAURANTS WHERE LOWER(NOM) LIKE LOWER(?)";
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, "%" + name + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Restaurant restaurant = new Restaurant();
+
+                    restaurant.setId(rs.getInt("NUMERO"));
+                    restaurant.setName(rs.getString("NOM"));
+                    restaurant.setDescription(rs.getString("DESCRIPTION"));
+                    restaurant.setWebsite(rs.getString("WEBSITE"));
+
+                    String adresse = rs.getString("ADRESSE");
+                    int cityId = rs.getInt("FK_VILL");
+                    City city = cityMapper.findById(cityId);
+                    Localisation localisation = new Localisation(adresse, city);
+                    restaurant.setAddress(localisation);
+
+                    int typeId = rs.getInt("FK_TYPE");
+                    RestaurantType type = restaurantTypeMapper.findById(typeId);
+                    restaurant.setType(type);
+
+                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurantId(restaurant.getId());
+                    Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
+                    restaurant.setEvaluations(evaluations);
+
+                    restaurantSet.add(restaurant);
+                }
+            }
+        } catch (SQLException ex) {
+            throw new RuntimeException("Erreur lors de la recherche de restaurants par nom : " + name, ex);
         }
 
         return restaurantSet;
