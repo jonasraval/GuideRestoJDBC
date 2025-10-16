@@ -12,22 +12,19 @@ import java.util.Set;
 public class RestaurantMapper extends AbstractMapper<Restaurant> {
     private final Connection connection;
 
-    private final RestaurantTypeMapper restaurantTypeMapper;
-    private final CompleteEvaluationMapper completeEvaluationMapper;
-    private final CityMapper cityMapper;
+    private RestaurantTypeMapper restaurantTypeMapper;
+    private CompleteEvaluationMapper completeEvaluationMapper;
+    private CityMapper cityMapper;
 
     public RestaurantMapper(Connection connection) {
         this.connection = connection;
-        this.restaurantTypeMapper = new RestaurantTypeMapper(connection);
-        this.completeEvaluationMapper = new CompleteEvaluationMapper(connection);
-        this.cityMapper = new CityMapper(connection);
     }
 
 
 
     @Override
     public Restaurant findById(int id) {
-        String sql= "SELECT * FROM restaurant WHERE numero = ?";
+        String sql= "SELECT * FROM restaurants WHERE numero = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
@@ -45,7 +42,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     restaurant.setAddress(localisation);
 
 
-                    int typeId = rs.getInt("TYPE_ID");
+                    int typeId = rs.getInt("FK_TYPE");
                     RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
                     restaurant.setType(restaurantType);
 
@@ -76,7 +73,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                 restaurant.setId(rs.getInt("NUMERO"));
                 restaurant.setName(rs.getString("NOM"));
                 restaurant.setDescription(rs.getString("DESCRIPTION"));
-                restaurant.setWebsite(rs.getString("WEBSITE"));
+                restaurant.setWebsite(rs.getString("SITE_WEB"));
 
                 String adresse = rs.getString("ADRESSE");
                 int cityId = rs.getInt("FK_VILL");
@@ -84,7 +81,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                 Localisation localisation = new Localisation(adresse, city);
                 restaurant.setAddress(localisation);
 
-                int typeId = rs.getInt("TYPE_ID");
+                int typeId = rs.getInt("FK_TYPE");
                 RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
                 restaurant.setType(restaurantType);
 
@@ -128,7 +125,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     Localisation localisation = new Localisation(adresse, city);
                     restaurant.setAddress(localisation);
 
-                    int typeId = rs.getInt("TYPE_ID");
+                    int typeId = rs.getInt("FK_TYPE");
                     RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
                     restaurant.setType(restaurantType);
 
@@ -161,7 +158,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     restaurant.setId(rs.getInt("NUMERO"));
                     restaurant.setName(rs.getString("NOM"));
                     restaurant.setDescription(rs.getString("DESCRIPTION"));
-                    restaurant.setWebsite(rs.getString("WEBSITE"));
+                    restaurant.setWebsite(rs.getString("SITE_WEB"));
 
                     String adresse = rs.getString("ADRESSE");
                     int cityId = rs.getInt("FK_VILL");
@@ -230,7 +227,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public Restaurant create(Restaurant restaurant) {
-        String insertSql = "INSERT INTO RESTAURANT (NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) VALUES (?,?,?,?,?,?)";
+        String insertSql = "INSERT INTO restaurants (NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) VALUES (?,?,?,?,?,?)";
         try (PreparedStatement ps = connection.prepareStatement(insertSql, PreparedStatement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, restaurant.getName());
             ps.setString(2, restaurant.getAddress().getStreet());
@@ -257,9 +254,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public boolean update(Restaurant restaurant) {
-        String sql = "UPDATE RESTAURANT " +
-                "SET NOM = ?, ADRESSE = ?, DESCRIPTION = ?, SITE_WEB = ?, FK_TYPE = ?, FK_VILL = ? " +
-                "WHERE NUMERO = ?";
+        String sql = "UPDATE restaurants SET NOM = ?, ADRESSE = ?, DESCRIPTION = ?, SITE_WEB = ?, FK_TYPE = ?, FK_VILL = ? WHERE NUMERO = ?";
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, restaurant.getName());
@@ -281,7 +276,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public boolean delete(Restaurant restaurant) {
-        String sql = "DELETE FROM RESTAURANT WHERE NUMERO = ?";
+        String sql = "DELETE FROM restaurants WHERE NUMERO = ?";
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, restaurant.getId());
@@ -296,7 +291,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public boolean deleteById(int id) {
-        String sql = "DELETE FROM RESTAURANT WHERE NUMERO = ?";
+        String sql = "DELETE FROM restaurants WHERE NUMERO = ?";
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
@@ -311,16 +306,28 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     protected String getSequenceQuery() {
-        return "SELECT RESTAURANT_SEQ.NEXTVAL FROM DUAL";
+        return "SELECT RESTAURANTS_SEQ.NEXTVAL FROM DUAL";
     }
 
     @Override
     protected String getExistsQuery() {
-        return "SELECT COUNT(*) FROM RESTAURANT WHERE NUMERO = ?";
+        return "SELECT COUNT(*) FROM restaurants WHERE NUMERO = ?";
     }
 
     @Override
     protected String getCountQuery() {
-        return "SELECT COUNT(*) FROM RESTAURANT";
+        return "SELECT COUNT(*) FROM restaurants";
+    }
+
+    public void setCompleteEvaluationMapper(CompleteEvaluationMapper completeEvaluationMapper) {
+        this.completeEvaluationMapper = completeEvaluationMapper;
+    }
+
+    public void setCityMapper(CityMapper cityMapper) {
+        this.cityMapper = cityMapper;
+    }
+
+    public void setRestaurantTypeMapper(RestaurantTypeMapper restaurantTypeMapper) {
+        this.restaurantTypeMapper = restaurantTypeMapper;
     }
 }

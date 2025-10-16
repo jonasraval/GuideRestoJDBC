@@ -25,15 +25,29 @@ public class Application {
     private static RestaurantTypeMapper restaurantTypeMapper;
     private static CompleteEvaluationMapper completeEvaluationMapper;
     private static EvaluationCriteriaMapper evaluationCriteriaMapper;
+    private static GradeMapper gradeMapper;
 
 
     public static void main(String[] args) {
-            connection = ConnectionUtils.getConnection();
-            restaurantMapper = new RestaurantMapper(connection);
-            cityMapper = new CityMapper(connection);
-            restaurantTypeMapper = new RestaurantTypeMapper(connection);
-            completeEvaluationMapper = new CompleteEvaluationMapper(connection);
-            evaluationCriteriaMapper = new EvaluationCriteriaMapper(connection);
+        connection = ConnectionUtils.getConnection();
+        restaurantMapper = new RestaurantMapper(connection);
+        cityMapper = new CityMapper(connection);
+        restaurantTypeMapper = new RestaurantTypeMapper(connection);
+        evaluationCriteriaMapper = new EvaluationCriteriaMapper(connection);
+        gradeMapper = new GradeMapper(connection);
+        completeEvaluationMapper = new CompleteEvaluationMapper(connection);
+
+        restaurantMapper.setCityMapper(cityMapper);
+        restaurantMapper.setRestaurantTypeMapper(restaurantTypeMapper);
+        restaurantMapper.setCompleteEvaluationMapper(completeEvaluationMapper);
+
+        completeEvaluationMapper.setRestaurantMapper(restaurantMapper);
+        completeEvaluationMapper.setGradeMapper(gradeMapper);
+        completeEvaluationMapper.setEvaluationCriteriaMapper(evaluationCriteriaMapper);
+
+        gradeMapper.setEvaluationCriteriaMapper(evaluationCriteriaMapper);
+        gradeMapper.setCompleteEvaluationMapper(completeEvaluationMapper);
+
 
         scanner = new Scanner(System.in);
 

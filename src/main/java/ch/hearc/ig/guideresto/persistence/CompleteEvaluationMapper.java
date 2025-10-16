@@ -8,14 +8,26 @@ import java.util.Set;
 
 public class CompleteEvaluationMapper  extends AbstractMapper{
     private final Connection connection;
-    private final RestaurantMapper restaurantMapper;
-    private final GradeMapper gradeMapper;
+    private RestaurantMapper restaurantMapper;
+    private GradeMapper gradeMapper;
+    private EvaluationCriteriaMapper evaluationCriteriaMapper;
 
     public CompleteEvaluationMapper(Connection connection) {
         this.connection = connection;
-        this.gradeMapper = new GradeMapper(connection);
-        this.restaurantMapper = new RestaurantMapper(connection);
     }
+
+    public void setRestaurantMapper(RestaurantMapper restaurantMapper) {
+        this.restaurantMapper = restaurantMapper;
+    }
+
+    public void setGradeMapper(GradeMapper gradeMapper) {
+        this.gradeMapper = gradeMapper;
+    }
+
+    public void setEvaluationCriteriaMapper(EvaluationCriteriaMapper evaluationCriteriaMapper) {
+        this.evaluationCriteriaMapper = evaluationCriteriaMapper;
+    }
+
 
     @Override
     public CompleteEvaluation findById(int id) {
@@ -262,4 +274,6 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
     protected String getCountQuery() {
         return "SELECT COUNT(*) FROM commentaires";
     }
+
+
 }

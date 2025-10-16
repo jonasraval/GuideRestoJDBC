@@ -13,18 +13,24 @@ import java.util.Set;
 
 public class GradeMapper extends AbstractMapper {
     private final Connection connection;
-    private final EvaluationCriteriaMapper evaluationCriteriaMapper;
-    private final CompleteEvaluationMapper completeEvaluationMapper;
+    private EvaluationCriteriaMapper evaluationCriteriaMapper;
+    private CompleteEvaluationMapper completeEvaluationMapper;
 
     public GradeMapper(Connection connection) {
         this.connection = connection;
-        this.completeEvaluationMapper = new CompleteEvaluationMapper(connection);
-        this.evaluationCriteriaMapper = new EvaluationCriteriaMapper(connection);
+    }
+
+    public void setEvaluationCriteriaMapper(EvaluationCriteriaMapper evaluationCriteriaMapper) {
+        this.evaluationCriteriaMapper = evaluationCriteriaMapper;
+    }
+
+    public void setCompleteEvaluationMapper(CompleteEvaluationMapper completeEvaluationMapper) {
+        this.completeEvaluationMapper = completeEvaluationMapper;
     }
 
     @Override
     public IBusinessObject findById(int id) {
-        String selectQuery = "SELECT * FROM grades WHERE numero = ?";
+        String selectQuery = "SELECT * FROM notes WHERE numero = ?";
 
         try (PreparedStatement s = connection.prepareStatement(selectQuery)){
                 s.setInt(1, id);

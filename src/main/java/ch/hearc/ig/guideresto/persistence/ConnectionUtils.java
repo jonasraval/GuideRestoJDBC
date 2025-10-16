@@ -32,11 +32,9 @@ public class ConnectionUtils {
 
             logger.info("Trying to connect to user schema '{}' with JDBC string '{}'", username, url);
 
-            // Initialize a connection if required
             if (ConnectionUtils.connection == null || ConnectionUtils.connection.isClosed()) {
-                Connection connection = DriverManager.getConnection(url, username, password);
-                connection.setAutoCommit(false);
-                ConnectionUtils.connection = connection;
+                ConnectionUtils.connection = DriverManager.getConnection(url, username, password);
+                ConnectionUtils.connection.setAutoCommit(false);
             }
         } catch (SQLException ex) {
             logger.error(ex.getMessage(), ex);
