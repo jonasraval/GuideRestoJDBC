@@ -216,7 +216,7 @@ public class Application {
      */
     private static void searchRestaurantByType() {
         RestaurantType chosenType = pickRestaurantType(restaurantTypeMapper.findAll());
-        Set<Restaurant> filteredList = restaurantMapper.findByType(chosenType);
+        Set<Restaurant> filteredList = restaurantMapper.findByType(chosenType.getId());
 
         if (chosenType == null) {
             System.out.println("Aucun type sélectionné. Retour au menu principal.");

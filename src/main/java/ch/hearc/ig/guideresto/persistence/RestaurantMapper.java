@@ -146,6 +146,49 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
         return restaurantSet;
     }
 
+
+    public Set<Restaurant> findByType(int typeId) {
+        Set<Restaurant> restaurantSet = new HashSet<>();
+        String sql = "SELECT * FROM RESTAURANTS WHERE FK_TYPE = ?";
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, typeId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Restaurant restaurant = new Restaurant();
+
+                    restaurant.setId(rs.getInt("NUMERO"));
+                    restaurant.setName(rs.getString("NOM"));
+                    restaurant.setDescription(rs.getString("DESCRIPTION"));
+                    restaurant.setWebsite(rs.getString("WEBSITE"));
+                    
+                    String adresse = rs.getString("ADRESSE");
+                    int cityId = rs.getInt("FK_VILL");
+                    City city = cityMapper.findById(cityId);
+                    Localisation localisation = new Localisation(adresse, city);
+                    restaurant.setAddress(localisation);
+
+                    RestaurantType type = restaurantTypeMapper.findById(typeId);
+                    restaurant.setType(type);
+
+                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurantId(restaurant.getId());
+                    Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
+                    restaurant.setEvaluations(evaluations);
+
+                    restaurantSet.add(restaurant);
+                }
+            }
+        } catch (SQLException ex) {
+            throw new RuntimeException("Erreur lors de la recherche des restaurants pour le type ID " + typeId, ex);
+        }
+
+        return restaurantSet;
+    }
+
+
+
+
     @Override
     public Restaurant create(Restaurant restaurant) {
         String insertSql = "INSERT INTO RESTAURANT (NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) VALUES (?,?,?,?,?,?)";
