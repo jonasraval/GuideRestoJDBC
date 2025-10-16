@@ -101,6 +101,51 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
         return restaurantSet;
     }
 
+    public Set<Restaurant> findByCity(String cityName) {
+        Set<Restaurant> restaurantSet = new HashSet<>();
+        String sql = """
+        SELECT r.*
+        FROM RESTAURANTS r
+        JOIN VILLES v ON r.FK_VILL = v.NUMERO
+        WHERE LOWER(v.NOM_VILLE) LIKE LOWER(?)
+    """;
+
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, "%" + cityName + "%");
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Restaurant restaurant = new Restaurant();
+
+                    restaurant.setId(rs.getInt("NUMERO"));
+                    restaurant.setName(rs.getString("NOM"));
+                    restaurant.setDescription(rs.getString("DESCRIPTION"));
+                    restaurant.setWebsite(rs.getString("WEBSITE"));
+
+                    String adresse = rs.getString("ADRESSE");
+                    int cityId = rs.getInt("FK_VILL");
+                    City city = cityMapper.findById(cityId);
+                    Localisation localisation = new Localisation(adresse, city);
+                    restaurant.setAddress(localisation);
+
+                    int typeId = rs.getInt("TYPE_ID");
+                    RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
+                    restaurant.setType(restaurantType);
+
+                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurantId(restaurant.getId());
+                    Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
+                    restaurant.setEvaluations(evaluations);
+
+                    restaurantSet.add(restaurant);
+                }
+            }
+        } catch (SQLException ex) {
+            throw new RuntimeException("Error finding restaurants in city: " + cityName, ex);
+        }
+
+        return restaurantSet;
+    }
+
     @Override
     public Restaurant create(Restaurant restaurant) {
         String insertSql = "INSERT INTO RESTAURANT (NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) VALUES (?,?,?,?,?,?)";

@@ -157,14 +157,7 @@ public class Application {
     private static void searchRestaurantByCity() {
         System.out.println("Veuillez entrer une partie du nom de la ville désirée : ");
         String research = readString();
-
-        // Comme on ne peut pas faire de requête SQL avec la classe FakeItems, on trie les données manuellement.
-        // Il est évident qu'une fois que vous utiliserez une base de données, il ne faut PAS garder ce système.
-        //Set<Restaurant> fullList = FakeItems.getAllRestaurants();
         Set<Restaurant> filteredList = restaurantMapper.findByCity(research);
-        //Ajouter un findByCity() dans restaurantMapper
-
-
         Restaurant restaurant = pickRestaurant(filteredList);
 
         if (restaurant != null) {
@@ -189,12 +182,10 @@ public class Application {
 
         if (choice.equals("NEW")) {
             City city = new City();
-            //city.setId(1); // A modifier quand on a la connexion avec la BDD.
             System.out.println("Veuillez entrer le NPA de la nouvelle ville : ");
             city.setZipCode(readString());
             System.out.println("Veuillez entrer le nom de la nouvelle ville : ");
             city.setCityName(readString());
-            //FakeItems.getCities().add(city);
             cityMapper.create(city);
             System.out.println("Nouvelle ville ajoutée avec succès !");
             return city;
