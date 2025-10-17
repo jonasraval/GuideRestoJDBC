@@ -30,14 +30,29 @@ public class Application {
 
     public static void main(String[] args) {
         connection = ConnectionUtils.getConnection();
-        restaurantMapper = new RestaurantMapper(connection);
+        System.out.println("Connexion OK");
+
         cityMapper = new CityMapper(connection);
+        System.out.println("CityMapper créé");
+
+        restaurantMapper = new RestaurantMapper(connection);
+        System.out.println("RestaurantMapper créé");
+
         restaurantTypeMapper = new RestaurantTypeMapper(connection);
+        System.out.println("RestaurantTypeMapper créé");
+
+
+
         evaluationCriteriaMapper = new EvaluationCriteriaMapper(connection);
+        System.out.println("EvaluationCriteriaMapper créé");
         gradeMapper = new GradeMapper(connection);
+        System.out.println("GradeMapper créé");
         completeEvaluationMapper = new CompleteEvaluationMapper(connection);
+        System.out.println("CompleteEvaluationMapper créé");
 
         restaurantMapper.setCityMapper(cityMapper);
+        System.out.println("CityMapper injecté dans RestaurantMapper : " + (cityMapper != null));
+
         restaurantMapper.setRestaurantTypeMapper(restaurantTypeMapper);
         restaurantMapper.setCompleteEvaluationMapper(completeEvaluationMapper);
 
@@ -48,6 +63,7 @@ public class Application {
         gradeMapper.setEvaluationCriteriaMapper(evaluationCriteriaMapper);
         gradeMapper.setCompleteEvaluationMapper(completeEvaluationMapper);
 
+        System.out.println("Toutes les injections faites");
 
         scanner = new Scanner(System.in);
 

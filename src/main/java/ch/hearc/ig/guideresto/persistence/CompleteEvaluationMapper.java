@@ -102,23 +102,23 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
         return evaluations;
     }
 
-    public Set<CompleteEvaluation> findByRestaurantId(int restaurantId) {
+    public Set<CompleteEvaluation> findByRestaurant(Restaurant restaurant) {
+        System.out.println("CompleteEvaluationMapper executed");
         Set<CompleteEvaluation> evaluations = new HashSet<>();
         String query = "SELECT * FROM commentaires WHERE fk_rest = ?";
 
         try (PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setInt(1, restaurantId);
+            stmt.setInt(1, restaurant.getId());
 
             try (ResultSet rs = stmt.executeQuery()) {
-                GradeMapper gradeMapper = new GradeMapper(connection);
-                RestaurantMapper restaurantMapper = new RestaurantMapper(connection);
+                //GradeMapper gradeMapper = new GradeMapper(connection);
+                //RestaurantMapper restaurantMapper = new RestaurantMapper(connection);
 
                 while (rs.next()) {
                     int evaluationId = rs.getInt("numero");
                     Date evaluationDate = rs.getDate("date_eval");
                     String comment = rs.getString("commentaire");
                     String username = rs.getString("nom_utilisateur");
-                    Restaurant restaurant = (Restaurant) restaurantMapper.findById(restaurantId);
 
                     CompleteEvaluation evaluation = new CompleteEvaluation(
                             evaluationId,
@@ -127,7 +127,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                             comment,
                             username
                     );
-                    Set<Grade> grades = gradeMapper.findByEvaluationId(evaluationId);
+                    Set<Grade> grades = this.gradeMapper.findByEvaluationId(evaluationId);
 
                     for (Grade grade : grades) {
                         grade.setEvaluation(evaluation);
@@ -138,9 +138,10 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error finding evaluations for restaurant ID " + restaurantId, e);
+            throw new RuntimeException("Error finding evaluations for restaurant ID " + restaurant.getId(), e);
         }
 
+        System.out.println("CompleteEvaluationMapper Returning evaluations");
         return evaluations;
     }
 

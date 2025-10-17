@@ -33,7 +33,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     restaurant.setId(rs.getInt("NUMERO"));
                     restaurant.setName(rs.getString("NOM"));
                     restaurant.setDescription(rs.getString("DESCRIPTION"));
-                    restaurant.setWebsite(rs.getString("WEBSITE"));
+                    restaurant.setWebsite(rs.getString("SITE_WEB"));
 
                     String adresse = rs.getString("ADRESSE");
                     int cityId = rs.getInt("FK_VILL");
@@ -46,7 +46,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
                     restaurant.setType(restaurantType);
 
-                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurantId(restaurant.getId());
+                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
                     Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
                     restaurant.setEvaluations(evaluations);
 
@@ -85,7 +85,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                 RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
                 restaurant.setType(restaurantType);
 
-                Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurantId(restaurant.getId());
+                Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
                 Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
                 restaurant.setEvaluations(evaluations);
 
@@ -117,7 +117,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     restaurant.setId(rs.getInt("NUMERO"));
                     restaurant.setName(rs.getString("NOM"));
                     restaurant.setDescription(rs.getString("DESCRIPTION"));
-                    restaurant.setWebsite(rs.getString("WEBSITE"));
+                    restaurant.setWebsite(rs.getString("SITE_WEB"));
 
                     String adresse = rs.getString("ADRESSE");
                     int cityId = rs.getInt("FK_VILL");
@@ -129,7 +129,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
                     restaurant.setType(restaurantType);
 
-                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurantId(restaurant.getId());
+                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
                     Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
                     restaurant.setEvaluations(evaluations);
 
@@ -169,7 +169,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     RestaurantType type = restaurantTypeMapper.findById(typeId);
                     restaurant.setType(type);
 
-                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurantId(restaurant.getId());
+                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
                     Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
                     restaurant.setEvaluations(evaluations);
 
@@ -196,7 +196,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     restaurant.setId(rs.getInt("NUMERO"));
                     restaurant.setName(rs.getString("NOM"));
                     restaurant.setDescription(rs.getString("DESCRIPTION"));
-                    restaurant.setWebsite(rs.getString("WEBSITE"));
+                    restaurant.setWebsite(rs.getString("SITE_WEB"));
 
                     String adresse = rs.getString("ADRESSE");
                     int cityId = rs.getInt("FK_VILL");
@@ -208,7 +208,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     RestaurantType type = restaurantTypeMapper.findById(typeId);
                     restaurant.setType(type);
 
-                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurantId(restaurant.getId());
+                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
                     Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
                     restaurant.setEvaluations(evaluations);
 
@@ -227,8 +227,10 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public Restaurant create(Restaurant restaurant) {
-        String insertSql = "INSERT INTO restaurants (NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) VALUES (?,?,?,?,?,?)";
-        try (PreparedStatement ps = connection.prepareStatement(insertSql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+        //String insertSql = "INSERT INTO restaurants (NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) VALUES (?,?,?,?,?,?)";
+        String insertSql = "INSERT INTO restaurants (NUMERO, NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) " +
+                "VALUES (SEQ_RESTAURANTS.NEXTVAL, ?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement ps = connection.prepareStatement(insertSql)) {
             ps.setString(1, restaurant.getName());
             ps.setString(2, restaurant.getAddress().getStreet());
             ps.setString(3, restaurant.getDescription());
