@@ -26,6 +26,7 @@ public class Application {
     private static CompleteEvaluationMapper completeEvaluationMapper;
     private static EvaluationCriteriaMapper evaluationCriteriaMapper;
     private static GradeMapper gradeMapper;
+    private static BasicEvaluationMapper basicEvaluationMapper;
 
 
     public static void main(String[] args) {
@@ -62,6 +63,9 @@ public class Application {
 
         gradeMapper.setEvaluationCriteriaMapper(evaluationCriteriaMapper);
         gradeMapper.setCompleteEvaluationMapper(completeEvaluationMapper);
+
+        basicEvaluationMapper = new BasicEvaluationMapper(connection);
+        System.out.println("BasicEvaluationMapper créé");
 
         System.out.println("Toutes les injections faites");
 
@@ -430,7 +434,11 @@ public class Application {
             logger.error("Error - Couldn't retreive host IP address");
             ipAddress = "Indisponible";
         }
-        BasicEvaluation eval = new BasicEvaluation(1, new Date(), restaurant, like, ipAddress);
+
+        BasicEvaluation eval = new BasicEvaluation(null, new Date(), restaurant, like, ipAddress);
+
+        eval = basicEvaluationMapper.create(eval);
+
         restaurant.getEvaluations().add(eval);
         System.out.println("Votre vote a été pris en compte !");
     }
