@@ -61,6 +61,21 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
         return basicEvaluationSet;
     }
 
+    public int countLikesForRestaurant(int restaurantId, boolean like) {
+        String sql = "SELECT COUNT(*) FROM LIKES WHERE FK_REST = ? AND APPRECIATION = ?";
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setInt(1, restaurantId);
+            ps.setString(2, like ? "Y" : "N");
+            try (ResultSet rs = ps.executeQuery()) {
+                rs.next();
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error counting likes", e);
+        }
+    }
+
+
     @Override
     public BasicEvaluation create(BasicEvaluation eval) {
         String insertSql =

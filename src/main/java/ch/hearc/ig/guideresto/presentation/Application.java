@@ -311,8 +311,8 @@ public class Application {
         sb.append(restaurant.getWebsite()).append("\n");
         sb.append(restaurant.getAddress().getStreet()).append(", ");
         sb.append(restaurant.getAddress().getCity().getZipCode()).append(" ").append(restaurant.getAddress().getCity().getCityName()).append("\n");
-        sb.append("Nombre de likes : ").append(countLikes(restaurant.getEvaluations(), true)).append("\n");
-        sb.append("Nombre de dislikes : ").append(countLikes(restaurant.getEvaluations(), false)).append("\n");
+        sb.append("Nombre de likes : ").append(basicEvaluationMapper.countLikesForRestaurant(restaurant.getId(), true)).append("\n");
+        sb.append("Nombre de dislikes : ").append(basicEvaluationMapper.countLikesForRestaurant(restaurant.getId(), false)).append("\n");
         sb.append("\nEvaluations reçues : ").append("\n");
 
         String text;
