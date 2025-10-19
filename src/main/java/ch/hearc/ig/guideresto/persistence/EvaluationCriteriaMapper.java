@@ -7,18 +7,45 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class EvaluationCriteriaMapper extends AbstractMapper {
     private final Connection connection;
 
+    private Map<Long, EvaluationCriteria> evaluationCriteriaCache = new HashMap<>();
+
     public EvaluationCriteriaMapper(Connection connection) {
         this.connection = connection;
     }
 
+    private EvaluationCriteria addToCache(ResultSet rs) throws SQLException {
+        int id = rs.getInt("NUMERO");
+
+        if (!this.evaluationCriteriaCache.containsKey((long) id)) {
+            System.out.println("[CACHE MISS] EvaluationCriteria " + id);
+            EvaluationCriteria evaluationCriteria = new EvaluationCriteria();
+
+            evaluationCriteria.setId(id);
+            evaluationCriteria.setDescription(rs.getString("DESCRIPTION"));
+            evaluationCriteria.setName(rs.getString("NOM"));
+
+            this.evaluationCriteriaCache.put((long) id, evaluationCriteria);
+        } else {
+            System.out.println("[CACHE HIT] EvaluationCriteria " + id);
+        }
+        return this.evaluationCriteriaCache.get((long) id);
+    }
+
     @Override
-    public IBusinessObject findById(int id) {
+    public EvaluationCriteria findById(int id) {
+        if (this.evaluationCriteriaCache.containsKey((long) id)) {
+            System.out.println("[CACHE HIT BEFORE QUERY] EvaluationCriteria " + id);
+            return this.evaluationCriteriaCache.get((long) id);
+        }
+
         String selectQuery = "SELECT * FROM criteres_evaluation WHERE numero = ?";
 
         try (PreparedStatement s = connection.prepareStatement(selectQuery)) {
@@ -26,11 +53,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
 
             try (ResultSet rs = s.executeQuery()) {
                 if (rs.next()) {
-                    int criteriaId = rs.getInt("numero");
-                    String name = rs.getString("nom");
-                    String description = rs.getString("description");
-
-                    return new EvaluationCriteria(criteriaId, name, description);
+                    return addToCache(rs);
                 }
             }
         } catch (SQLException e) {
@@ -40,20 +63,15 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
     }
 
     @Override
-    public Set findAll() {
-        Set<IBusinessObject> criteriaSet = new HashSet<>();
+    public Set<EvaluationCriteria> findAll() {
+        Set<EvaluationCriteria> criteriaSet = new HashSet<>();
         String selectQuery = "SELECT * FROM criteres_evaluation";
 
         try (PreparedStatement s = connection.prepareStatement(selectQuery);
              ResultSet rs = s.executeQuery()) {
 
             while (rs.next()) {
-                int id = rs.getInt("numero");
-                String name = rs.getString("nom");
-                String description = rs.getString("description");
-
-                EvaluationCriteria criteria = new EvaluationCriteria(id, name, description);
-                criteriaSet.add(criteria);
+                criteriaSet.add(addToCache(rs));
             }
 
         } catch (SQLException e) {
