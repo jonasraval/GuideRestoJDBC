@@ -3,7 +3,9 @@ package ch.hearc.ig.guideresto.persistence;
 import ch.hearc.ig.guideresto.business.*;
 
 import java.sql.*;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class CompleteEvaluationMapper  extends AbstractMapper{
@@ -11,6 +13,8 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
     private RestaurantMapper restaurantMapper;
     private GradeMapper gradeMapper;
     private EvaluationCriteriaMapper evaluationCriteriaMapper;
+
+    private Map<Long, CompleteEvaluation> completeEvaluationCache = new HashMap<>();
 
     public CompleteEvaluationMapper(Connection connection) {
         this.connection = connection;
@@ -28,37 +32,60 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
         this.evaluationCriteriaMapper = evaluationCriteriaMapper;
     }
 
+    private CompleteEvaluation addToCache(ResultSet rs) throws SQLException {
+        int id = rs.getInt("NUMERO");
+
+        if (!this.completeEvaluationCache.containsKey(id)) {
+            System.out.println("[CACHE MISS] CompleteEvaluation " + id);
+            CompleteEvaluation completeEvaluation = new CompleteEvaluation();
+            completeEvaluation.setId(id);
+            completeEvaluation.setComment(rs.getString("COMMENTAIRE"));
+            completeEvaluation.setUsername(rs.getString("NOM_UTILISATEUR"));
+            completeEvaluation.setVisitDate(rs.getDate("DATE_EVAL"));
+
+            //Restaurant
+            int restaurantId = rs.getInt("FK_REST");
+
+            if (restaurantMapper != null) {
+                completeEvaluation.setRestaurant((Restaurant) restaurantMapper.findById(restaurantId));
+            } else {
+                System.out.println("restaurantMapper is null — skipping restaurant mapping for Grade " + id);
+            }
+
+            //Grades
+            if (gradeMapper != null) {
+                Set<Grade> grades = gradeMapper.findByEvaluationId(id);
+
+                for (Grade grade : grades) {
+                    grade.setEvaluation(completeEvaluation);
+                }
+                completeEvaluation.setGrades(grades);
+            } else {
+                System.out.println("gradeMapper is null — skipping grade mapping for Grade " + id);
+            }
+
+            this.completeEvaluationCache.put((long) id, completeEvaluation);
+        } else {
+            System.out.println("[CACHE HIT] CompleteEvaluation " + id);
+
+        }
+        return this.completeEvaluationCache.get((long) id);
+    }
 
     @Override
     public CompleteEvaluation findById(int id) {
+        if (completeEvaluationCache.containsKey((long) id)) {
+            System.out.println("[CACHE HIT BEFORE QUERY] CompleteEvaluation " + id);
+            return completeEvaluationCache.get((long) id);
+        }
+
         String selectQuery = "SELECT * FROM commentaires WHERE NUMERO = ?";
 
         try (PreparedStatement s = connection.prepareStatement(selectQuery)) {
             s.setInt(1,id);
             try (ResultSet rs = s.executeQuery()) {
                 if (rs.next()) {
-                    int evaluationId = rs.getInt("numero");
-                    Date evaluationDate = rs.getDate("date_eval");
-                    String comment = rs.getString("commentaire");
-                    String username = rs.getString("nom_utilisateur");
-                    int restaurantId = rs.getInt("fk_rest");
-
-                    Restaurant restaurant = restaurantMapper.findById(restaurantId);
-
-                    CompleteEvaluation evaluation = new CompleteEvaluation(
-                            evaluationDate,
-                            restaurant,
-                            comment,
-                            username
-                    );
-
-                    Set<Grade> grades = gradeMapper.findByEvaluationId(evaluationId);
-                    for (Grade grade : grades) { //each grade knows its evaluation
-                        grade.setEvaluation(evaluation);
-                    }
-                    evaluation.setGrades(grades); //the evaluation knows its grades
-
-                    return evaluation;
+                    return addToCache(rs);
                 }
             }
         } catch (SQLException e) {
@@ -75,25 +102,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
         try (PreparedStatement s = connection.prepareStatement(selectQuery);
              ResultSet rs = s.executeQuery()) {
             while (rs.next()) {
-                int evaluationId = rs.getInt("numero");
-                Date evaluationDate = rs.getDate("date_eval");
-                String comment = rs.getString("commentaire");
-                String username = rs.getString("nom_utilisateur");
-                int restaurantId = rs.getInt("fk_rest");
-
-                Restaurant restaurant = restaurantMapper.findById(restaurantId);
-
-                CompleteEvaluation evaluation = new CompleteEvaluation(
-                        evaluationDate,
-                        restaurant,
-                        comment,
-                        username
-                );
-
-                Set<Grade> grades = gradeMapper.findByEvaluationId(evaluationId); //ajouter cette méthode dans GradeMapper!
-                evaluation.setGrades(grades);
-
-                evaluations.add(evaluation);
+                evaluations.add(addToCache(rs));
             }
 
         } catch (SQLException e) {
