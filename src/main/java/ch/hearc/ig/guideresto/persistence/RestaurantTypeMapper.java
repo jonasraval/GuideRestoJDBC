@@ -6,7 +6,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
@@ -17,19 +19,40 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
         this.connection = connection;
     }
 
+    private Map<Long, RestaurantType> typeCache = new HashMap<>();
+
+    private RestaurantType addToCache(ResultSet rs) throws SQLException {
+        int id = rs.getInt("NUMERO");
+
+        if (!this.typeCache.containsKey((long) id)) {
+            System.out.println("[CACHE MISS] RestaurantType " + id + " créé depuis DB");
+            RestaurantType type = new RestaurantType();
+            type.setId(rs.getInt("NUMERO"));
+            type.setLabel(rs.getString("LIBELLE"));
+            type.setDescription(rs.getString("DESCRIPTION"));
+
+            typeCache.put((long) id, type);
+        } else {
+            System.out.println("[CACHE HIT] RestaurantType " + id + " récupéré depuis cache");
+        }
+        return this.typeCache.get((long) id);
+    }
+
     @Override
     public RestaurantType findById(int id) {
+        if (typeCache.containsKey(id)) {
+            System.out.println("[CACHE HIT BEFORE QUERY] RestaurantType " + id);
+            return typeCache.get(id);
+        }
         String sql = "SELECT * FROM TYPES_GASTRONOMIQUES WHERE NUMERO = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    RestaurantType type = new RestaurantType();
-                    type.setId(rs.getInt("NUMERO"));
-                    type.setLabel(rs.getString("LIBELLE"));
-                    type.setDescription(rs.getString("DESCRIPTION"));
+                    RestaurantType type = addToCache(rs);
                     return type;
                 }
+                System.out.println("[CACHE MISS BEFORE QUERY] RestaurantType " + id + " → requête SQL");
             }
         } catch (SQLException e) {
             e.getMessage();
@@ -46,10 +69,8 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                RestaurantType type = new RestaurantType();
-                type.setId(rs.getInt("NUMERO"));
-                type.setLabel(rs.getString("LIBELLE"));
-                type.setDescription(rs.getString("DESCRIPTION"));
+                RestaurantType type = addToCache(rs);
+
                 types.add(type);
             }
 
