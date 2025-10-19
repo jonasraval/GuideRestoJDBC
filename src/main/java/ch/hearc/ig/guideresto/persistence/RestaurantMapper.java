@@ -6,7 +6,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class RestaurantMapper extends AbstractMapper<Restaurant> {
@@ -16,6 +18,36 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
     private CompleteEvaluationMapper completeEvaluationMapper;
     private CityMapper cityMapper;
 
+    private Map<Long, Restaurant> restaurantsCache = new HashMap<>(); //identity map
+
+    private Restaurant addToCache(ResultSet rs) throws SQLException {
+        int id = rs.getInt("NUMERO");
+
+        if (!this.restaurantsCache.containsKey((long) id)) {
+            System.out.println("[CACHE MISS] Restaurant " + id + " créé depuis DB");
+            Restaurant restaurant = new Restaurant();
+            restaurant.setId(id);
+            restaurant.setName(rs.getString("NOM"));
+            restaurant.setDescription(rs.getString("DESCRIPTION"));
+            restaurant.setWebsite(rs.getString("SITE_WEB"));
+
+            String adresse = rs.getString("ADRESSE");
+            int cityId = rs.getInt("FK_VILL");
+            City city = cityMapper.findById(cityId);
+            Localisation localisation = new Localisation(adresse, city);
+            restaurant.setAddress(localisation);
+
+            int typeId = rs.getInt("FK_TYPE");
+            RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
+            restaurant.setType(restaurantType);
+
+            restaurantsCache.put((long) id, restaurant);
+        } else{
+            System.out.println("[CACHE HIT] Restaurant " + id + " récupéré depuis cache");
+        }
+        return this.restaurantsCache.get((long) id);
+    }
+
     public RestaurantMapper(Connection connection) {
         this.connection = connection;
     }
@@ -24,27 +56,18 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public Restaurant findById(int id) {
+        if (restaurantsCache.containsKey(id)) {
+            System.out.println("[CACHE HIT BEFORE QUERY] Restaurant " + id);
+            return restaurantsCache.get(id);
+        }
         String sql= "SELECT * FROM restaurants WHERE numero = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    Restaurant restaurant = new Restaurant();
-                    restaurant.setId(rs.getInt("NUMERO"));
-                    restaurant.setName(rs.getString("NOM"));
-                    restaurant.setDescription(rs.getString("DESCRIPTION"));
-                    restaurant.setWebsite(rs.getString("SITE_WEB"));
+                    System.out.println("[CACHE MISS BEFORE QUERY] Restaurant " + id + " → requête SQL");
 
-                    String adresse = rs.getString("ADRESSE");
-                    int cityId = rs.getInt("FK_VILL");
-                    City city = cityMapper.findById(cityId);
-                    Localisation localisation = new Localisation(adresse, city);
-                    restaurant.setAddress(localisation);
-
-
-                    int typeId = rs.getInt("FK_TYPE");
-                    RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
-                    restaurant.setType(restaurantType);
+                    Restaurant restaurant = addToCache(rs);
 
                     Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
                     Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
@@ -68,30 +91,16 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                Restaurant restaurant = new Restaurant();
+                Restaurant restaurant = addToCache(rs);
 
-                restaurant.setId(rs.getInt("NUMERO"));
-                restaurant.setName(rs.getString("NOM"));
-                restaurant.setDescription(rs.getString("DESCRIPTION"));
-                restaurant.setWebsite(rs.getString("SITE_WEB"));
-
-                String adresse = rs.getString("ADRESSE");
-                int cityId = rs.getInt("FK_VILL");
-                City city = cityMapper.findById(cityId);
-                Localisation localisation = new Localisation(adresse, city);
-                restaurant.setAddress(localisation);
-
-                int typeId = rs.getInt("FK_TYPE");
-                RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
-                restaurant.setType(restaurantType);
-
-                Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
-                Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
-                restaurant.setEvaluations(evaluations);
+                if (restaurant.getEvaluations() == null) {
+                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
+                    Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
+                    restaurant.setEvaluations(evaluations);
+                }
 
                 restaurantSet.add(restaurant);
             }
-
         } catch (SQLException ex) {
             ex.printStackTrace();
         }
@@ -112,26 +121,13 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Restaurant restaurant = new Restaurant();
+                    Restaurant restaurant = addToCache(rs);
 
-                    restaurant.setId(rs.getInt("NUMERO"));
-                    restaurant.setName(rs.getString("NOM"));
-                    restaurant.setDescription(rs.getString("DESCRIPTION"));
-                    restaurant.setWebsite(rs.getString("SITE_WEB"));
-
-                    String adresse = rs.getString("ADRESSE");
-                    int cityId = rs.getInt("FK_VILL");
-                    City city = cityMapper.findById(cityId);
-                    Localisation localisation = new Localisation(adresse, city);
-                    restaurant.setAddress(localisation);
-
-                    int typeId = rs.getInt("FK_TYPE");
-                    RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
-                    restaurant.setType(restaurantType);
-
-                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
-                    Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
-                    restaurant.setEvaluations(evaluations);
+                    if (restaurant.getEvaluations() == null) {
+                        Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
+                        Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
+                        restaurant.setEvaluations(evaluations);
+                    }
 
                     restaurantSet.add(restaurant);
                 }
@@ -153,25 +149,13 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Restaurant restaurant = new Restaurant();
+                    Restaurant restaurant = addToCache(rs);
 
-                    restaurant.setId(rs.getInt("NUMERO"));
-                    restaurant.setName(rs.getString("NOM"));
-                    restaurant.setDescription(rs.getString("DESCRIPTION"));
-                    restaurant.setWebsite(rs.getString("SITE_WEB"));
-
-                    String adresse = rs.getString("ADRESSE");
-                    int cityId = rs.getInt("FK_VILL");
-                    City city = cityMapper.findById(cityId);
-                    Localisation localisation = new Localisation(adresse, city);
-                    restaurant.setAddress(localisation);
-
-                    RestaurantType type = restaurantTypeMapper.findById(typeId);
-                    restaurant.setType(type);
-
-                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
-                    Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
-                    restaurant.setEvaluations(evaluations);
+                    if (restaurant.getEvaluations() == null) {
+                        Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
+                        Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
+                        restaurant.setEvaluations(evaluations);
+                    }
 
                     restaurantSet.add(restaurant);
                 }
@@ -191,26 +175,13 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
             ps.setString(1, "%" + name + "%");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Restaurant restaurant = new Restaurant();
+                    Restaurant restaurant = addToCache(rs);
 
-                    restaurant.setId(rs.getInt("NUMERO"));
-                    restaurant.setName(rs.getString("NOM"));
-                    restaurant.setDescription(rs.getString("DESCRIPTION"));
-                    restaurant.setWebsite(rs.getString("SITE_WEB"));
-
-                    String adresse = rs.getString("ADRESSE");
-                    int cityId = rs.getInt("FK_VILL");
-                    City city = cityMapper.findById(cityId);
-                    Localisation localisation = new Localisation(adresse, city);
-                    restaurant.setAddress(localisation);
-
-                    int typeId = rs.getInt("FK_TYPE");
-                    RestaurantType type = restaurantTypeMapper.findById(typeId);
-                    restaurant.setType(type);
-
-                    Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
-                    Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
-                    restaurant.setEvaluations(evaluations);
+                    if (restaurant.getEvaluations() == null) {
+                        Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
+                        Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
+                        restaurant.setEvaluations(evaluations);
+                    }
 
                     restaurantSet.add(restaurant);
                 }
