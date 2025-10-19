@@ -7,13 +7,34 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Set;
 
-import static java.lang.Integer.parseInt;
 
 public class CityMapper extends AbstractMapper<City>{
 
     private final Connection connection;
+
+    private Map<Long, City> cityCache = new HashMap<>();//identity map
+
+    private City addToCache(ResultSet rs) throws SQLException {
+        int id = rs.getInt("NUMERO");
+
+        if (!this.cityCache.containsKey((long) id)) {
+            System.out.println("[CACHE MISS] Ville " + id + " créé depuis DB");
+            City city = new City();
+            city.setId(rs.getInt("NUMERO"));
+            city.setCityName(rs.getString("NOM_VILLE"));
+            city.setZipCode(rs.getString("CODE_POSTAL"));
+
+            cityCache.put((long) id, city);
+        } else {
+            System.out.println("[CACHE HIT] Ville " + id + " récupéré depuis cache");
+        }
+        return this.cityCache.get((long) id);
+    }
+
 
     public CityMapper(Connection connection) {
         this.connection = connection;
@@ -21,15 +42,17 @@ public class CityMapper extends AbstractMapper<City>{
 
     @Override
     public City findById(int id) {
+        if (this.cityCache.containsKey(id)) {
+            System.out.println("[CACHE HIT BEFORE QUERY] Restaurant " + id);
+            return this.cityCache.get(id);
+        }
         String sql = "SELECT * FROM VILLES WHERE NUMERO = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    City city = new City();
-                    city.setId(rs.getInt("NUMERO"));
-                    city.setCityName(rs.getString("NOM_VILLE"));
-                    city.setZipCode(rs.getString("CODE_POSTAL"));
+                    System.out.println("[CACHE MISS BEFORE QUERY] Restaurant " + id + " → requête SQL");
+                    City city = addToCache(rs);
                     return city;
                 }
             }
@@ -47,10 +70,7 @@ public class CityMapper extends AbstractMapper<City>{
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                City city = new City();
-                city.setId(rs.getInt("NUMERO"));
-                city.setCityName(rs.getString("NOM_VILLE"));
-                city.setZipCode(rs.getString("CODE_POSTAL"));
+                City city = addToCache(rs);
                 cities.add(city);
             }
 
