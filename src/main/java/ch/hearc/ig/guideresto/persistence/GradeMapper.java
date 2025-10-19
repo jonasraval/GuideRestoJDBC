@@ -6,13 +6,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class GradeMapper extends AbstractMapper {
     private final Connection connection;
+
+    private Map<Long, Grade> gradeCache = new HashMap<Long, Grade>();
+
     private EvaluationCriteriaMapper evaluationCriteriaMapper;
     private CompleteEvaluationMapper completeEvaluationMapper;
 
@@ -28,14 +28,51 @@ public class GradeMapper extends AbstractMapper {
         this.completeEvaluationMapper = completeEvaluationMapper;
     }
 
+    private Grade addToCache(ResultSet rs) throws SQLException {
+        int id = rs.getInt("NUMERO");
+
+        if (!this.gradeCache.containsKey((long) id)) {
+            System.out.println("[CACHE MISS] Grade " + id);
+            Grade grade = new Grade();
+            grade.setId(id);
+            grade.setGrade(rs.getInt("NOTE"));
+            this.gradeCache.put((long) id, grade);
+
+            int evaluationId = rs.getInt("FK_COMM");
+            int criteriaId = rs.getInt("FK_CRIT");
+
+            if (completeEvaluationMapper != null) {
+                grade.setEvaluation((CompleteEvaluation) completeEvaluationMapper.findById(evaluationId));
+            } else {
+                System.out.println("completeEvaluationMapper is null — skipping evaluation mapping for Grade " + id);
+            }
+
+            if (evaluationCriteriaMapper != null) {
+                grade.setCriteria((EvaluationCriteria) evaluationCriteriaMapper.findById(criteriaId));
+            } else {
+                System.out.println("evaluationCriteriaMapper is null — skipping criteria mapping for Grade " + id);
+            }
+        } else {
+            System.out.println("[CACHE HIT] Grade " + id);
+        }
+        return this.gradeCache.get((long) id);
+    }
+
+
     @Override
     public IBusinessObject findById(int id) {
+        if (this.gradeCache.containsKey(id)) {
+            System.out.println("[CACHE HIT BEFORE QUERY] Grade " + id);
+            return this.gradeCache.get(id);
+        }
+
         String selectQuery = "SELECT * FROM notes WHERE numero = ?";
 
         try (PreparedStatement s = connection.prepareStatement(selectQuery)){
                 s.setInt(1, id);
                 try (ResultSet rs = s.executeQuery()) {
                     if (rs.next()) {
+                        /*
                         int gradeId = rs.getInt("numero");
                         int note = rs.getInt("note");
                         int evaluationId = rs.getInt("fk_comm");
@@ -45,7 +82,8 @@ public class GradeMapper extends AbstractMapper {
                         CompleteEvaluation evaluation = completeEvaluationMapper.findById(evaluationId);
                         EvaluationCriteria criteria = (EvaluationCriteria) evaluationCriteriaMapper.findById(criteriaId);
 
-                        return new Grade(gradeId, note, evaluation, criteria);
+                         */
+                        return addToCache(rs);
                     }
                 }
         } catch (SQLException e) {
@@ -91,7 +129,7 @@ public class GradeMapper extends AbstractMapper {
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                int gradeId = rs.getInt("numero");
+                /*int gradeId = rs.getInt("numero");
                 int note = rs.getInt("note");
                 int evaluationId = rs.getInt("fk_comm");
                 int criteriaId = rs.getInt("fk_crit");
@@ -100,6 +138,9 @@ public class GradeMapper extends AbstractMapper {
                 EvaluationCriteria criteria = (EvaluationCriteria) evaluationCriteriaMapper.findById(criteriaId);
 
                 Grade grade = new Grade(gradeId, note, evaluation, criteria);
+                grades.add(grade);
+                 */
+                Grade grade = addToCache(rs);
                 grades.add(grade);
             }
 
