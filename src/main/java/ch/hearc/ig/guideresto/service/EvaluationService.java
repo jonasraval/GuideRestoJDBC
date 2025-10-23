@@ -46,4 +46,9 @@ public class EvaluationService implements IEvaluationService{
     public Set<EvaluationCriteria> getAllCriteria() {
         return evaluationCriteriaMapper.findAll();
     }
+
+    @Override
+    public int countLikesForRestaurant(int id, boolean like) {
+        return basicEvaluationMapper.countLikesForRestaurant(id, true);
+    }
 }

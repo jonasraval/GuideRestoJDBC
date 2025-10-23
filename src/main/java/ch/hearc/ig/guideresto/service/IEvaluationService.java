@@ -10,5 +10,5 @@ public interface IEvaluationService {
     void addBasicEvaluation(Restaurant restaurant, Boolean like, String ipAddress);
     void evaluateRestaurant(Restaurant restaurant, String username, String comment, Map<EvaluationCriteria, Integer> gradesMap);
     Set<EvaluationCriteria> getAllCriteria();
-
+    int countLikesForRestaurant(int id, boolean like);
 }

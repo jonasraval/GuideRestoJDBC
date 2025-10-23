@@ -253,8 +253,8 @@ public class Application {
      * Si l'utilisateur sélectionne un restaurant, ce dernier lui sera affiché.
      */
     private static void searchRestaurantByType() {
-        RestaurantType chosenType = pickRestaurantType(restaurantTypeMapper.findAll()); //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
-        Set<Restaurant> filteredList = restaurantMapper.findByType(chosenType.getId()); //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
+        RestaurantType chosenType = pickRestaurantType(restaurantTypeMapper.findAll());
+        Set<Restaurant> filteredList = restaurantMapper.findByType(chosenType.getId());
 
         if (chosenType == null) {
             System.out.println("Aucun type sélectionné. Retour au menu principal.");
@@ -319,10 +319,9 @@ public class Application {
         sb.append(restaurant.getWebsite()).append("\n");
         sb.append(restaurant.getAddress().getStreet()).append(", ");
         sb.append(restaurant.getAddress().getCity().getZipCode()).append(" ").append(restaurant.getAddress().getCity().getCityName()).append("\n");
-        sb.append("Nombre de likes : ").append(basicEvaluationMapper.countLikesForRestaurant(restaurant.getId(), true)).append("\n");
-        sb.append("Nombre de dislikes : ").append(basicEvaluationMapper.countLikesForRestaurant(restaurant.getId(), false)).append("\n");
+        sb.append("Nombre de likes : ").append(evaluationService.countLikesForRestaurant(restaurant.getId(), true)).append("\n");
+        sb.append("Nombre de dislikes : ").append(evaluationService.countLikesForRestaurant(restaurant.getId(), false)).append("\n");
         sb.append("\nEvaluations reçues : ").append("\n");
-        //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
 
         String text;
         for (Evaluation currentEval : restaurant.getEvaluations()) {
