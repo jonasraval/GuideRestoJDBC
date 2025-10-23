@@ -15,9 +15,10 @@ public class RestaurantService implements IRestaurantService {
     private RestaurantTypeMapper restaurantTypeMapper;
     private CityMapper cityMapper;
 
-
-    public RestaurantService(RestaurantMapper restaurantMapper) {
-        this.restaurantMapper = restaurantMapper;
+    public RestaurantService(PersistanceContext persistenceContext) {
+        this.restaurantMapper = persistenceContext.getRestaurantMapper();
+        this.restaurantTypeMapper = persistenceContext.getRestaurantTypeMapper();
+        this.cityMapper = persistenceContext.getCityMapper();
     }
 
     @Override

@@ -201,7 +201,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
         //String insertSql = "INSERT INTO restaurants (NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) VALUES (?,?,?,?,?,?)";
         String insertSql = "INSERT INTO restaurants (NUMERO, NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) " +
                 "VALUES (SEQ_RESTAURANTS.NEXTVAL, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = connection.prepareStatement(insertSql)) {
+        try (PreparedStatement ps = connection.prepareStatement(insertSql, new String[]{"NUMERO"})) {
             ps.setString(1, restaurant.getName());
             ps.setString(2, restaurant.getAddress().getStreet());
             ps.setString(3, restaurant.getDescription());
