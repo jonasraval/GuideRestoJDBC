@@ -1,14 +1,14 @@
 package ch.hearc.ig.guideresto.presentation;
 
 import ch.hearc.ig.guideresto.business.*;
-import ch.hearc.ig.guideresto.persistence.*;
+import ch.hearc.ig.guideresto.service.EvaluationService;
+import ch.hearc.ig.guideresto.service.PersistanceContext;
 import ch.hearc.ig.guideresto.service.RestaurantService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
-import java.sql.Connection;
 import java.util.*;
 
 /**
@@ -20,68 +20,35 @@ public class Application {
     private static Scanner scanner;
     private static final Logger logger = LogManager.getLogger(Application.class);
 
-    private static Connection connection;
-    private static RestaurantMapper restaurantMapper;
-    private static CityMapper cityMapper;
-    private static RestaurantTypeMapper restaurantTypeMapper;
-    private static CompleteEvaluationMapper completeEvaluationMapper;
-    private static EvaluationCriteriaMapper evaluationCriteriaMapper;
-    private static GradeMapper gradeMapper;
-    private static BasicEvaluationMapper basicEvaluationMapper;
     private static RestaurantService restaurantService;
+    private static EvaluationService evaluationService;
+
+
+    public Application(RestaurantService restaurantService, EvaluationService evaluationService) {
+        this.restaurantService = restaurantService;
+        this.evaluationService = evaluationService;
+        this.scanner = new Scanner(System.in);
+    }
 
     public static void main(String[] args) {
-        connection = ConnectionUtils.getConnection();
-        System.out.println("Connexion OK");
+        try (PersistanceContext persistanceContext = new PersistanceContext()) {
 
-        cityMapper = new CityMapper(connection);
-        System.out.println("CityMapper créé");
+            restaurantService = new RestaurantService(persistanceContext);
+            evaluationService = new EvaluationService(persistanceContext);
 
-        restaurantMapper = new RestaurantMapper(connection);
-        System.out.println("RestaurantMapper créé");
+            scanner = new Scanner(System.in);
 
-        restaurantTypeMapper = new RestaurantTypeMapper(connection);
-        System.out.println("RestaurantTypeMapper créé");
-
-        restaurantService = new RestaurantService(restaurantMapper);
-
-
-
-
-        evaluationCriteriaMapper = new EvaluationCriteriaMapper(connection);
-        System.out.println("EvaluationCriteriaMapper créé");
-        gradeMapper = new GradeMapper(connection);
-        System.out.println("GradeMapper créé");
-        completeEvaluationMapper = new CompleteEvaluationMapper(connection);
-        System.out.println("CompleteEvaluationMapper créé");
-
-        restaurantMapper.setCityMapper(cityMapper);
-        System.out.println("CityMapper injecté dans RestaurantMapper : " + (cityMapper != null));
-
-        restaurantMapper.setRestaurantTypeMapper(restaurantTypeMapper);
-        restaurantMapper.setCompleteEvaluationMapper(completeEvaluationMapper);
-
-        completeEvaluationMapper.setRestaurantMapper(restaurantMapper);
-        completeEvaluationMapper.setGradeMapper(gradeMapper);
-        completeEvaluationMapper.setEvaluationCriteriaMapper(evaluationCriteriaMapper);
-
-        gradeMapper.setEvaluationCriteriaMapper(evaluationCriteriaMapper);
-        gradeMapper.setCompleteEvaluationMapper(completeEvaluationMapper);
-
-        basicEvaluationMapper = new BasicEvaluationMapper(connection);
-        System.out.println("BasicEvaluationMapper créé");
-
-        System.out.println("Toutes les injections faites");
-
-        scanner = new Scanner(System.in);
-
-        System.out.println("Bienvenue dans GuideResto ! Que souhaitez-vous faire ?");
-        int choice;
-        do {
-            printMainMenu();
-            choice = readInt();
-            proceedMainMenu(choice);
-        } while (choice != 0);
+            System.out.println("Bienvenue dans GuideResto ! Que souhaitez-vous faire ?");
+            int choice;
+            do {
+                printMainMenu();
+                choice = readInt();
+                proceedMainMenu(choice);
+            } while (choice != 0);
+        } catch (Exception e) {
+            System.err.println("Erreur au démarrage de l'application : " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -312,8 +279,19 @@ public class Application {
         sb.append(restaurant.getWebsite()).append("\n");
         sb.append(restaurant.getAddress().getStreet()).append(", ");
         sb.append(restaurant.getAddress().getCity().getZipCode()).append(" ").append(restaurant.getAddress().getCity().getCityName()).append("\n");
-        sb.append("Nombre de likes : ").append(evaluationService.countLikesForRestaurant(restaurant.getId(), true)).append("\n");
-        sb.append("Nombre de dislikes : ").append(evaluationService.countLikesForRestaurant(restaurant.getId(), false)).append("\n");
+
+        Integer id = restaurant.getId();
+        if (id != null) {
+            sb.append("Nombre de likes : ")
+                    .append(evaluationService.countLikesForRestaurant(id, true))
+                    .append("\n");
+            sb.append("Nombre de dislikes : ")
+                    .append(evaluationService.countLikesForRestaurant(id, false))
+                    .append("\n");
+        } else {
+            sb.append("Nombre de likes : N/A (non encore enregistré)").append("\n");
+            sb.append("Nombre de dislikes : N/A").append("\n");
+        }
         sb.append("\nEvaluations reçues : ").append("\n");
 
         String text;
@@ -419,11 +397,8 @@ public class Application {
             ipAddress = "Indisponible";
         }
 
-        BasicEvaluation eval = new BasicEvaluation(null, new Date(), restaurant, like, ipAddress);
+        evaluationService.addBasicEvaluation(restaurant, like, ipAddress);
 
-        eval = basicEvaluationMapper.create(eval);
-
-        restaurant.getEvaluations().add(eval);
         System.out.println("Votre vote a été pris en compte !");
     }
 
@@ -439,20 +414,16 @@ public class Application {
         System.out.println("Quel commentaire aimeriez-vous publier ?");
         String comment = readString();
 
-        CompleteEvaluation eval = new CompleteEvaluation(null, new Date(), restaurant, comment, username);
-        restaurant.getEvaluations().add(eval);
+        Map<EvaluationCriteria, Integer> gradesMap = new HashMap<>();
 
-        Grade grade;
-        System.out.println("Veuillez svp donner une note entre 1 et 5 pour chacun de ces critères : ");
-
-        for (Object obj : evaluationCriteriaMapper.findAll()) {
-            EvaluationCriteria currentCriteria = (EvaluationCriteria) obj;
-            System.out.println(currentCriteria.getName() + " : " + currentCriteria.getDescription());
+        for (EvaluationCriteria criteria : evaluationService.getAllCriteria()) {
+            System.out.println(criteria.getName() + " : " + criteria.getDescription());
             Integer note = readInt();
-            grade = new Grade(null, note, eval, currentCriteria);
-            eval.getGrades().add(grade);
+            gradesMap.put(criteria, note);
         }
-        completeEvaluationMapper.create(eval);
+
+        evaluationService.evaluateRestaurant(restaurant, username, comment, gradesMap);
+
         System.out.println("Votre évaluation a bien été enregistrée, merci !");
     }
 
@@ -493,13 +464,11 @@ public class Application {
         System.out.println("Nouvelle rue : ");
         restaurant.getAddress().setStreet(readString());
 
-        City newCity = pickCity(cityMapper.findAll());
+        City newCity = pickCity(restaurantService.getAllCities());
         if (newCity != null && newCity != restaurant.getAddress().getCity()) {
-            restaurant.getAddress().getCity().getRestaurants().remove(restaurant);
-            restaurant.getAddress().setCity(newCity);
-            newCity.getRestaurants().add(restaurant);
+            restaurantService.editRestaurantAddress(restaurant, newCity);
         }
-        restaurantMapper.update(restaurant);
+        restaurantService.updateRestaurant(restaurant);
 
         System.out.println("L'adresse a bien été modifiée ! Merci !");
     }
