@@ -2,6 +2,7 @@ package ch.hearc.ig.guideresto.presentation;
 
 import ch.hearc.ig.guideresto.business.*;
 import ch.hearc.ig.guideresto.persistence.*;
+import ch.hearc.ig.guideresto.service.EvaluationService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -15,8 +16,6 @@ import java.util.*;
  * @author alain.matile
  */
 public class Application {
-
-    private static Scanner scanner;
     private static final Logger logger = LogManager.getLogger(Application.class);
 
     private static Connection connection;
@@ -28,6 +27,15 @@ public class Application {
     private static GradeMapper gradeMapper;
     private static BasicEvaluationMapper basicEvaluationMapper;
 
+    private final EvaluationService evaluationService;
+    private final RestaurantService restaurantService;
+    private static Scanner scanner;
+
+    public Application(RestaurantService restaurantService, EvaluationService evaluationService) {
+        this.restaurantService = restaurantService;
+        this.evaluationService = evaluationService;
+        this.scanner = new Scanner(System.in);
+    }
 
     public static void main(String[] args) {
         connection = ConnectionUtils.getConnection();
@@ -157,7 +165,7 @@ public class Application {
     private static void showRestaurantsList() {
         System.out.println("Liste des restaurants : ");
 
-        Set<Restaurant> restaurants = restaurantMapper.findAll();
+        Set<Restaurant> restaurants = restaurantMapper.findAll(); //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
         Restaurant restaurant = pickRestaurant(restaurants);
 
         if (restaurant != null) { // Si l'utilisateur a choisi un restaurant, on l'affiche, sinon on ne fait rien et l'application va réafficher le menu principal
@@ -172,7 +180,7 @@ public class Application {
         System.out.println("Veuillez entrer une partie du nom recherché : ");
         String research = readString();
 
-        Set<Restaurant> filteredList = restaurantMapper.findByName(research);
+        Set<Restaurant> filteredList = restaurantMapper.findByName(research); //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
 
         Restaurant restaurant = pickRestaurant(filteredList);
 
@@ -187,7 +195,7 @@ public class Application {
     private static void searchRestaurantByCity() {
         System.out.println("Veuillez entrer une partie du nom de la ville désirée : ");
         String research = readString();
-        Set<Restaurant> filteredList = restaurantMapper.findByCity(research);
+        Set<Restaurant> filteredList = restaurantMapper.findByCity(research); //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
         Restaurant restaurant = pickRestaurant(filteredList);
 
         if (restaurant != null) {
@@ -216,7 +224,7 @@ public class Application {
             city.setZipCode(readString());
             System.out.println("Veuillez entrer le nom de la nouvelle ville : ");
             city.setCityName(readString());
-            cityMapper.create(city);
+            cityMapper.create(city); //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
             System.out.println("Nouvelle ville ajoutée avec succès !");
             return city;
         }
@@ -245,8 +253,8 @@ public class Application {
      * Si l'utilisateur sélectionne un restaurant, ce dernier lui sera affiché.
      */
     private static void searchRestaurantByType() {
-        RestaurantType chosenType = pickRestaurantType(restaurantTypeMapper.findAll());
-        Set<Restaurant> filteredList = restaurantMapper.findByType(chosenType.getId());
+        RestaurantType chosenType = pickRestaurantType(restaurantTypeMapper.findAll()); //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
+        Set<Restaurant> filteredList = restaurantMapper.findByType(chosenType.getId()); //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
 
         if (chosenType == null) {
             System.out.println("Aucun type sélectionné. Retour au menu principal.");
@@ -281,18 +289,18 @@ public class Application {
         City city = null;
         do
         { // La sélection d'une ville est obligatoire, donc l'opération se répètera tant qu'aucune ville n'est sélectionnée.
-            city = pickCity(cityMapper.findAll());
+            city = pickCity(cityMapper.findAll()); //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
         } while (city == null);
         RestaurantType restaurantType = null;
         do
         { // La sélection d'un type est obligatoire, donc l'opération se répètera tant qu'aucun type n'est sélectionné.
-            restaurantType = pickRestaurantType(restaurantTypeMapper.findAll());
+            restaurantType = pickRestaurantType(restaurantTypeMapper.findAll()); //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
         } while (restaurantType == null);
 
         Restaurant restaurant = new Restaurant(null, name, description, website, street, city, restaurantType);
         city.getRestaurants().add(restaurant);
         restaurantType.getRestaurants().add(restaurant);
-        restaurantMapper.create(restaurant);
+        restaurantMapper.create(restaurant); //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
 
         showRestaurant(restaurant);
     }
@@ -314,6 +322,7 @@ public class Application {
         sb.append("Nombre de likes : ").append(basicEvaluationMapper.countLikesForRestaurant(restaurant.getId(), true)).append("\n");
         sb.append("Nombre de dislikes : ").append(basicEvaluationMapper.countLikesForRestaurant(restaurant.getId(), false)).append("\n");
         sb.append("\nEvaluations reçues : ").append("\n");
+        //REMPLACER PAR UN APPEL A UNE METHODE SERVICE
 
         String text;
         for (Evaluation currentEval : restaurant.getEvaluations()) {
@@ -434,12 +443,8 @@ public class Application {
             logger.error("Error - Couldn't retreive host IP address");
             ipAddress = "Indisponible";
         }
+        evaluationService.addBasicEvaluation(restaurant, like, ipAddress);
 
-        BasicEvaluation eval = new BasicEvaluation(null, new Date(), restaurant, like, ipAddress);
-
-        eval = basicEvaluationMapper.create(eval);
-
-        restaurant.getEvaluations().add(eval);
         System.out.println("Votre vote a été pris en compte !");
     }
 
@@ -449,26 +454,16 @@ public class Application {
      * @param restaurant Le restaurant à évaluer
      */
     private static void evaluateRestaurant(Restaurant restaurant) {
-        System.out.println("Merci d'évaluer ce restaurant !");
-        System.out.println("Quel est votre nom d'utilisateur ? ");
-        String username = readString();
-        System.out.println("Quel commentaire aimeriez-vous publier ?");
-        String comment = readString();
+        Map<EvaluationCriteria, Integer> gradesMap = new HashMap<>();
 
-        CompleteEvaluation eval = new CompleteEvaluation(null, new Date(), restaurant, comment, username);
-        restaurant.getEvaluations().add(eval);
-
-        Grade grade; // L'utilisateur va saisir une note pour chaque critère existant.
-        System.out.println("Veuillez svp donner une note entre 1 et 5 pour chacun de ces critères : ");
-
-        for (Object obj : evaluationCriteriaMapper.findAll()) {
-            EvaluationCriteria currentCriteria = (EvaluationCriteria) obj;
-            System.out.println(currentCriteria.getName() + " : " + currentCriteria.getDescription());
+        for (EvaluationCriteria criteria : evaluationService.getAllCriteria()) {
+            System.out.println(criteria.getName() + " : " + criteria.getDescription());
             Integer note = readInt();
-            grade = new Grade(null, note, eval, currentCriteria);
-            eval.getGrades().add(grade);
+            gradesMap.put(criteria, note);
         }
-        completeEvaluationMapper.create(eval); // à vérifier dans evaluationCriteriaMapper
+
+        evaluationService.evaluateRestaurant(restaurant, username, comment, gradesMap);
+
         System.out.println("Votre évaluation a bien été enregistrée, merci !");
     }
 
@@ -489,13 +484,13 @@ public class Application {
         restaurant.setWebsite(readString());
         System.out.println("Nouveau type de restaurant : ");
 
-        RestaurantType newType = pickRestaurantType(restaurantTypeMapper.findAll());
+        RestaurantType newType = pickRestaurantType(restaurantTypeMapper.findAll()); //SERVICE !!!!
         if (newType != null && newType != restaurant.getType()) {
             restaurant.getType().getRestaurants().remove(restaurant); // Il faut d'abord supprimer notre restaurant puisque le type va peut-être changer
             restaurant.setType(newType);
             newType.getRestaurants().add(restaurant);
         }
-        restaurantMapper.update(restaurant);
+        restaurantMapper.update(restaurant); //SERVICE !!!!
 
         System.out.println("Merci, le restaurant a bien été modifié !");
     }
@@ -512,13 +507,13 @@ public class Application {
         System.out.println("Nouvelle rue : ");
         restaurant.getAddress().setStreet(readString());
 
-        City newCity = pickCity(cityMapper.findAll());
+        City newCity = pickCity(cityMapper.findAll()); //SERVICE !!!!
         if (newCity != null && newCity != restaurant.getAddress().getCity()) {
             restaurant.getAddress().getCity().getRestaurants().remove(restaurant); // On supprime l'adresse de la ville
             restaurant.getAddress().setCity(newCity);
             newCity.getRestaurants().add(restaurant);
         }
-        restaurantMapper.update(restaurant);
+        restaurantMapper.update(restaurant); //SERVICE !!!!
 
         System.out.println("L'adresse a bien été modifiée ! Merci !");
     }
@@ -532,7 +527,7 @@ public class Application {
         System.out.println("Etes-vous sûr de vouloir supprimer ce restaurant ? (O/n)");
         String choice = readString();
         if (choice.equals("o") || choice.equals("O")) {
-            restaurantMapper.delete(restaurant);
+            restaurantMapper.delete(restaurant); //SERVICE !!!!
             restaurant.getAddress().getCity().getRestaurants().remove(restaurant);
             restaurant.getType().getRestaurants().remove(restaurant);
             System.out.println("Le restaurant a bien été supprimé !");
