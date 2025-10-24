@@ -4,6 +4,7 @@ import ch.hearc.ig.guideresto.business.City;
 import ch.hearc.ig.guideresto.business.Restaurant;
 import ch.hearc.ig.guideresto.business.RestaurantType;
 import ch.hearc.ig.guideresto.persistence.CityMapper;
+import ch.hearc.ig.guideresto.persistence.PersistanceContext;
 import ch.hearc.ig.guideresto.persistence.RestaurantMapper;
 import ch.hearc.ig.guideresto.persistence.RestaurantTypeMapper;
 

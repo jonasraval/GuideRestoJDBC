@@ -1,10 +1,6 @@
 package ch.hearc.ig.guideresto.service;
 
-import ch.hearc.ig.guideresto.persistence.BasicEvaluationMapper;
-import ch.hearc.ig.guideresto.persistence.CompleteEvaluationMapper;
-import ch.hearc.ig.guideresto.persistence.EvaluationCriteriaMapper;
-import ch.hearc.ig.guideresto.persistence.GradeMapper;
-import ch.hearc.ig.guideresto.service.*;
+import ch.hearc.ig.guideresto.persistence.*;
 import ch.hearc.ig.guideresto.business.*;
 
 

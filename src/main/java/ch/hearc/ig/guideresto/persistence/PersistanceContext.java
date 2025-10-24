@@ -1,6 +1,4 @@
-package ch.hearc.ig.guideresto.service;
-
-import ch.hearc.ig.guideresto.persistence.*;
+package ch.hearc.ig.guideresto.persistence;
 
 import java.sql.Connection;
 import java.sql.SQLException;

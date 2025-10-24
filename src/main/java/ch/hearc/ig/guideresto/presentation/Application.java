@@ -2,7 +2,7 @@ package ch.hearc.ig.guideresto.presentation;
 
 import ch.hearc.ig.guideresto.business.*;
 import ch.hearc.ig.guideresto.service.EvaluationService;
-import ch.hearc.ig.guideresto.service.PersistanceContext;
+import ch.hearc.ig.guideresto.persistence.PersistanceContext;
 import ch.hearc.ig.guideresto.service.RestaurantService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
