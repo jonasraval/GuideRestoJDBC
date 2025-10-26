@@ -47,7 +47,6 @@ public class Application {
             } while (choice != 0);
         } catch (Exception e) {
             System.err.println("Erreur au démarrage de l'application : " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
