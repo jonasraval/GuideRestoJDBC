@@ -5,14 +5,13 @@ import ch.hearc.ig.guideresto.business.Restaurant;
 
 import java.sql.*;
 import java.util.*;
-import java.util.Date;
 
 public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
 
     private final Connection connection;
     private RestaurantMapper restaurantMapper;
 
-    private Map<Long, BasicEvaluation> basicEvaluationCache = new HashMap<>();
+    private Map<Integer, BasicEvaluation> basicEvaluationCache = new HashMap<>();
 
     public BasicEvaluationMapper(Connection connection) {
         this.connection = connection;
@@ -24,63 +23,56 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
 
     private BasicEvaluation addToCache(ResultSet rs) throws SQLException{
         int id = rs.getInt("NUMERO");
+        BasicEvaluation basicEvaluation = new BasicEvaluation();
+        basicEvaluation.setId(id);
+        basicEvaluation.setIpAddress(rs.getString("ADRESSE_IP"));
+        basicEvaluation.setVisitDate(rs.getDate("DATE_EVAL"));
+        basicEvaluation.setLikeRestaurant("Y".equalsIgnoreCase(rs.getString("APPRECIATION")));
 
-        if (!this.basicEvaluationCache.containsKey(id)) {
-            System.out.println("[CACHE MISS] BasicEvaluation " + id);
-            BasicEvaluation basicEvaluation = new BasicEvaluation();
-            basicEvaluation.setId(id);
-            basicEvaluation.setIpAddress(rs.getString("ADRESSE_IP"));
-            basicEvaluation.setVisitDate(rs.getDate("DATE_EVAL"));
-            basicEvaluation.setLikeRestaurant("Y".equalsIgnoreCase(rs.getString("APPRECIATION")));
+        int restaurantId = rs.getInt("FK_REST");
 
-            int restaurantId = rs.getInt("FK_REST");
-
-            if (restaurantMapper != null) {
-                basicEvaluation.setRestaurant((Restaurant) restaurantMapper.findById(restaurantId));
-            } else {
-                System.out.println("restaurantMapper is null — skipping restaurant mapping for Grade " + id);
-            }
-
-            this.basicEvaluationCache.put((long) id, basicEvaluation);
-        } else {
-            System.out.println("[CACHE HIT] BasicEvaluation " + id);
+        if (restaurantMapper != null) {
+            basicEvaluation.setRestaurant(restaurantMapper.findById(restaurantId));
         }
-        return this.basicEvaluationCache.get((long) id);
+
+        addToCache(basicEvaluation);
+        return basicEvaluation;
     }
 
     @Override
     public BasicEvaluation findById(int id) {
-        if (basicEvaluationCache.containsKey((long) id)) {
-            System.out.println("[CACHE HIT BEFORE QUERY] BasicEvaluation " + id);
-            return basicEvaluationCache.get((long) id);
+        if (basicEvaluationCache.containsKey(id)) {
+            return basicEvaluationCache.get(id);
         }
 
         String sql = "SELECT * FROM LIKES WHERE NUMERO = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
-
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return addToCache(rs);
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error finding like eval " + id, e);
+            throw new RuntimeException("Erreur : " +e.getMessage());
         }
         return null;
     }
 
     @Override
     public Set<BasicEvaluation> findAll() {
+        resetCache();
+
         Set<BasicEvaluation> basicEvaluationSet = new HashSet<>();
         String sql = "SELECT * FROM LIKES";
+
         try (PreparedStatement ps = connection.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 basicEvaluationSet.add(addToCache(rs));
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error fetching all likes", e);
+            throw new RuntimeException("Erreur : " +e.getMessage());
         }
         return basicEvaluationSet;
     }
@@ -95,7 +87,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
                 return rs.getInt(1);
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error counting likes", e);
+            throw new RuntimeException("Erreur : "+ e.getMessage());
         }
     }
 
@@ -126,7 +118,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
             return eval;
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error inserting BasicEvaluation", e);
+            throw new RuntimeException("Erreur : "+ e.getMessage());
         }
     }
 
@@ -142,7 +134,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
 
             return ps.executeUpdate() > 0;
         } catch (SQLException e) {
-            throw new RuntimeException("Error updating like eval", e);
+            throw new RuntimeException("Erreur : "+ e.getMessage());
         }
     }
 
@@ -156,10 +148,15 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
         String sql = "DELETE FROM LIKES WHERE NUMERO=?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
-            return ps.executeUpdate() > 0;
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                removeFromCache(id);
+                return true;
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Error deleting like eval", e);
         }
+        return false;
     }
 
     @Override
