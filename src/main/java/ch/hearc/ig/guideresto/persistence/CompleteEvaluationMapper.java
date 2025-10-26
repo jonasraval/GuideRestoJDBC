@@ -14,7 +14,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
     private GradeMapper gradeMapper;
     private EvaluationCriteriaMapper evaluationCriteriaMapper;
 
-    private Map<Long, CompleteEvaluation> completeEvaluationCache = new HashMap<>();
+    private Map<Integer, CompleteEvaluation> completeEvaluationCache = new HashMap<>();
 
     public CompleteEvaluationMapper(Connection connection) {
         this.connection = connection;
@@ -34,9 +34,6 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
 
     private CompleteEvaluation addToCache(ResultSet rs) throws SQLException {
         int id = rs.getInt("NUMERO");
-
-        if (!this.completeEvaluationCache.containsKey(id)) {
-            System.out.println("[CACHE MISS] CompleteEvaluation " + id);
             CompleteEvaluation completeEvaluation = new CompleteEvaluation();
             completeEvaluation.setId(id);
             completeEvaluation.setComment(rs.getString("COMMENTAIRE"));
@@ -47,9 +44,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
             int restaurantId = rs.getInt("FK_REST");
 
             if (restaurantMapper != null) {
-                completeEvaluation.setRestaurant((Restaurant) restaurantMapper.findById(restaurantId));
-            } else {
-                System.out.println("restaurantMapper is null — skipping restaurant mapping for Grade " + id);
+                completeEvaluation.setRestaurant(restaurantMapper.findById(restaurantId));
             }
 
             //Grades
@@ -60,23 +55,16 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                     grade.setEvaluation(completeEvaluation);
                 }
                 completeEvaluation.setGrades(grades);
-            } else {
-                System.out.println("gradeMapper is null — skipping grade mapping for Grade " + id);
             }
 
-            this.completeEvaluationCache.put((long) id, completeEvaluation);
-        } else {
-            System.out.println("[CACHE HIT] CompleteEvaluation " + id);
-
-        }
-        return this.completeEvaluationCache.get((long) id);
+            addToCache(completeEvaluation);
+        return completeEvaluation;
     }
 
     @Override
     public CompleteEvaluation findById(int id) {
-        if (completeEvaluationCache.containsKey((long) id)) {
-            System.out.println("[CACHE HIT BEFORE QUERY] CompleteEvaluation " + id);
-            return completeEvaluationCache.get((long) id);
+        if (completeEvaluationCache.containsKey(id)) {
+            return completeEvaluationCache.get(id);
         }
 
         String selectQuery = "SELECT * FROM commentaires WHERE NUMERO = ?";
@@ -89,13 +77,15 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error finding evaluation with id " + id, e);
+            throw new RuntimeException("Erreur " + e.getMessage());
         }
         return null;
     }
 
     @Override
     public Set<CompleteEvaluation> findAll() {
+        resetCache();
+
         Set<CompleteEvaluation> evaluations = new HashSet<>();
         String selectQuery = "SELECT * FROM commentaires";
 
@@ -106,13 +96,12 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error finding all evaluations", e);
+            throw new RuntimeException("Erreur : "+ e.getMessage());
         }
         return evaluations;
     }
 
     public Set<CompleteEvaluation> findByRestaurant(Restaurant restaurant) {
-        System.out.println("CompleteEvaluationMapper executed");
         Set<CompleteEvaluation> evaluations = new HashSet<>();
         String query = "SELECT * FROM commentaires WHERE fk_rest = ?";
 
@@ -120,8 +109,6 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
             stmt.setInt(1, restaurant.getId());
 
             try (ResultSet rs = stmt.executeQuery()) {
-                //GradeMapper gradeMapper = new GradeMapper(connection);
-                //RestaurantMapper restaurantMapper = new RestaurantMapper(connection);
 
                 while (rs.next()) {
                     int evaluationId = rs.getInt("numero");
@@ -147,10 +134,8 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error finding evaluations for restaurant ID " + restaurant.getId(), e);
+            throw new RuntimeException("Erreur : "+ e.getMessage());
         }
-
-        System.out.println("CompleteEvaluationMapper Returning evaluations");
         return evaluations;
     }
 
@@ -181,13 +166,12 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                     }
                 }
                 return evaluation;
-            } else {
-                throw new RuntimeException("Error inserting evaluation");
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error inserting evaluation", e);
+            throw new RuntimeException("Erreur : "+ e.getMessage());
         }
+        return null;
     }
 
     @Override
@@ -226,7 +210,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error updating evaluation with id " + evaluation.getId(), e);
+            throw new RuntimeException("Erreur : "+ e.getMessage());
         }
     }
 
@@ -248,15 +232,20 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                 }
             }
 
-            try (PreparedStatement s = connection.prepareStatement(deleteQuery)) {
-                s.setInt(1, evaluation.getId());
-                int rowsDeleted = s.executeUpdate();
-                return rowsDeleted > 0;
+            try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+                ps.setInt(1, evaluation.getId());
+                int rowsDeleted = ps.executeUpdate();
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    removeFromCache(evaluation.getId());
+                    return true;
+                }
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error deleting evaluation with id " + evaluation.getId(), e);
+            throw new RuntimeException("Erreur : "+e.getMessage());
         }
+        return false;
     }
 
     @Override
