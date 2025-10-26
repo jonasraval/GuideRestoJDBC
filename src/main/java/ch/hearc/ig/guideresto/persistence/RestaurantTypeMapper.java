@@ -19,29 +19,23 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
         this.connection = connection;
     }
 
-    private Map<Long, RestaurantType> typeCache = new HashMap<>();
+    private Map<Integer, RestaurantType> typeCache = new HashMap<>();
 
     private RestaurantType addToCache(ResultSet rs) throws SQLException {
         int id = rs.getInt("NUMERO");
 
-        if (!this.typeCache.containsKey((long) id)) {
-            System.out.println("[CACHE MISS] RestaurantType " + id + " créé depuis DB");
             RestaurantType type = new RestaurantType();
-            type.setId(rs.getInt("NUMERO"));
+            type.setId(id);
             type.setLabel(rs.getString("LIBELLE"));
             type.setDescription(rs.getString("DESCRIPTION"));
 
-            typeCache.put((long) id, type);
-        } else {
-            System.out.println("[CACHE HIT] RestaurantType " + id + " récupéré depuis cache");
-        }
-        return this.typeCache.get((long) id);
+            addToCache(type);
+        return type;
     }
 
     @Override
     public RestaurantType findById(int id) {
         if (typeCache.containsKey(id)) {
-            System.out.println("[CACHE HIT BEFORE QUERY] RestaurantType " + id);
             return typeCache.get(id);
         }
         String sql = "SELECT * FROM TYPES_GASTRONOMIQUES WHERE NUMERO = ?";
@@ -52,16 +46,16 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
                     RestaurantType type = addToCache(rs);
                     return type;
                 }
-                System.out.println("[CACHE MISS BEFORE QUERY] RestaurantType " + id + " → requête SQL");
             }
         } catch (SQLException e) {
-            e.getMessage();
+            System.out.println("Erreur : "+ e.getMessage());
         }
         return null;
     }
 
     @Override
     public Set<RestaurantType> findAll() {
+        resetCache();
         Set<RestaurantType> types = new HashSet<>();
         String sql = "SELECT * FROM TYPES_GASTRONOMIQUES";
 
@@ -75,7 +69,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
             }
 
         } catch (SQLException e) {
-            System.err.println("Error finding all RestaurantTypes: " + e.getMessage());
+            System.err.println("Erreur : " + e.getMessage());
         }
 
         return types;
@@ -98,7 +92,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
             return type;
 
         } catch (SQLException e) {
-            e.getMessage();
+            System.out.println("Erreur : "+e.getMessage());
             throw new RuntimeException(e);
         }
     }
@@ -114,7 +108,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
             return rows > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error updating RestaurantType: " + e.getMessage());
+            System.err.println("Erreur : " + e.getMessage());
             return false;
         }
     }
@@ -124,13 +118,17 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
         String sql = "DELETE FROM TYPES_GASTRONOMIQUES WHERE NUMERO = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, type.getId());
-            int rows = ps.executeUpdate();
-            return rows > 0;
+            int rowsDeleted = ps.executeUpdate();
+            if (rowsDeleted > 0) {
+                removeFromCache(type.getId());
+                return true;
+            }
 
         } catch (SQLException e) {
-            System.err.println("Error deleting RestaurantType: " + e.getMessage());
+            System.err.println("Erreur : " + e.getMessage());
             return false;
         }
+        return false;
     }
 
     @Override
@@ -138,13 +136,18 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
         String sql = "DELETE FROM TYPES_GASTRONOMIQUES WHERE NUMERO = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
-            int rows = ps.executeUpdate();
-            return rows > 0;
+            int rowsDeleted = ps.executeUpdate();
+
+            if (rowsDeleted > 0) {
+                removeFromCache(id);
+                return true;
+            }
 
         } catch (SQLException e) {
-            System.err.println("Error deleting RestaurantType by ID: " + e.getMessage());
+            System.err.println("Erreur : " + e.getMessage());
             return false;
         }
+        return false;
     }
 
     @Override
