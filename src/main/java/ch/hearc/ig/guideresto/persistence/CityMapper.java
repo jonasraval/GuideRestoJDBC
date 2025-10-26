@@ -16,23 +16,17 @@ public class CityMapper extends AbstractMapper<City>{
 
     private final Connection connection;
 
-    private Map<Long, City> cityCache = new HashMap<>();//identity map
+    private Map<Integer, City> cityCache = new HashMap<>();//identity map
 
     private City addToCache(ResultSet rs) throws SQLException {
-        int id = rs.getInt("NUMERO");
+        City city = new City();
+        city.setId(rs.getInt("NUMERO"));
+        city.setCityName(rs.getString("NOM_VILLE"));
+        city.setZipCode(rs.getString("CODE_POSTAL"));
 
-        if (!this.cityCache.containsKey((long) id)) {
-            System.out.println("[CACHE MISS] Ville " + id + " créé depuis DB");
-            City city = new City();
-            city.setId(rs.getInt("NUMERO"));
-            city.setCityName(rs.getString("NOM_VILLE"));
-            city.setZipCode(rs.getString("CODE_POSTAL"));
+        addToCache(city);
 
-            cityCache.put((long) id, city);
-        } else {
-            System.out.println("[CACHE HIT] Ville " + id + " récupéré depuis cache");
-        }
-        return this.cityCache.get((long) id);
+        return city;
     }
 
 
@@ -43,7 +37,6 @@ public class CityMapper extends AbstractMapper<City>{
     @Override
     public City findById(int id) {
         if (this.cityCache.containsKey(id)) {
-            System.out.println("[CACHE HIT BEFORE QUERY] Restaurant " + id);
             return this.cityCache.get(id);
         }
         String sql = "SELECT * FROM VILLES WHERE NUMERO = ?";
@@ -51,19 +44,18 @@ public class CityMapper extends AbstractMapper<City>{
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    System.out.println("[CACHE MISS BEFORE QUERY] Restaurant " + id + " → requête SQL");
-                    City city = addToCache(rs);
-                    return city;
+                    return addToCache(rs);
                 }
             }
         } catch (SQLException e) {
-            e.getMessage();
+            System.out.println("Erreur : "+e.getMessage());
         }
         return null;
     }
 
     @Override
     public Set<City> findAll() {
+        resetCache();
         Set<City> cities = new HashSet<>();
         String sql = "SELECT * FROM VILLES";
         try (PreparedStatement ps = connection.prepareStatement(sql);
@@ -75,7 +67,7 @@ public class CityMapper extends AbstractMapper<City>{
             }
 
         } catch (SQLException e) {
-            e.getMessage();
+            System.out.println("Erreur : "+e.getMessage());
         }
         return cities;
     }
@@ -98,7 +90,7 @@ public class CityMapper extends AbstractMapper<City>{
             return city;
 
         } catch (SQLException e) {
-            System.err.println("Error creating city: " + e.getMessage());
+            System.err.println("Erreur création de ville: " + e.getMessage());
             throw new RuntimeException(e);
         }
     }
@@ -113,7 +105,7 @@ public class CityMapper extends AbstractMapper<City>{
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error updating city: " + e.getMessage());
+            System.err.println("Erreur mise à jour de la ville: " + e.getMessage());
             return false;
         }
     }
@@ -125,12 +117,15 @@ public class CityMapper extends AbstractMapper<City>{
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, city.getId());
             int rows = ps.executeUpdate();
-            return rows > 0;
-
+            if (rows > 0) {
+                removeFromCache(city.getId());
+                return true;
+            }
         } catch (SQLException e) {
             e.getMessage();
             return false;
         }
+        return false;
     }
 
     @Override
@@ -141,7 +136,7 @@ public class CityMapper extends AbstractMapper<City>{
             return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
-            System.err.println("Error deleting city: " + e.getMessage());
+            System.err.println("Erreur de suppression de la ville: " + e.getMessage());
             return false;
         }
     }
