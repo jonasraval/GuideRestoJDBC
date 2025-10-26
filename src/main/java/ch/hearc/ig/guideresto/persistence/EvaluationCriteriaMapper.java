@@ -15,7 +15,7 @@ import java.util.Set;
 public class EvaluationCriteriaMapper extends AbstractMapper {
     private final Connection connection;
 
-    private Map<Long, EvaluationCriteria> evaluationCriteriaCache = new HashMap<>();
+    private Map<Integer, EvaluationCriteria> evaluationCriteriaCache = new HashMap<>();
 
     public EvaluationCriteriaMapper(Connection connection) {
         this.connection = connection;
@@ -24,26 +24,21 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
     private EvaluationCriteria addToCache(ResultSet rs) throws SQLException {
         int id = rs.getInt("NUMERO");
 
-        if (!this.evaluationCriteriaCache.containsKey((long) id)) {
-            System.out.println("[CACHE MISS] EvaluationCriteria " + id);
-            EvaluationCriteria evaluationCriteria = new EvaluationCriteria();
+        EvaluationCriteria evaluationCriteria = new EvaluationCriteria();
 
-            evaluationCriteria.setId(id);
-            evaluationCriteria.setDescription(rs.getString("DESCRIPTION"));
-            evaluationCriteria.setName(rs.getString("NOM"));
+        evaluationCriteria.setId(id);
+        evaluationCriteria.setDescription(rs.getString("DESCRIPTION"));
+        evaluationCriteria.setName(rs.getString("NOM"));
 
-            this.evaluationCriteriaCache.put((long) id, evaluationCriteria);
-        } else {
-            System.out.println("[CACHE HIT] EvaluationCriteria " + id);
-        }
-        return this.evaluationCriteriaCache.get((long) id);
+        addToCache(evaluationCriteria);
+
+        return evaluationCriteria;
     }
 
     @Override
     public EvaluationCriteria findById(int id) {
-        if (this.evaluationCriteriaCache.containsKey((long) id)) {
-            System.out.println("[CACHE HIT BEFORE QUERY] EvaluationCriteria " + id);
-            return this.evaluationCriteriaCache.get((long) id);
+        if (this.evaluationCriteriaCache.containsKey(id)) {
+            return this.evaluationCriteriaCache.get(id);
         }
 
         String selectQuery = "SELECT * FROM criteres_evaluation WHERE numero = ?";
@@ -57,13 +52,14 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error finding evaluation criteria with id " + id, e);
+            throw new RuntimeException("Erreur : " +e.getMessage());
         }
         return null;
     }
 
     @Override
     public Set<EvaluationCriteria> findAll() {
+        resetCache();
         Set<EvaluationCriteria> criteriaSet = new HashSet<>();
         String selectQuery = "SELECT * FROM criteres_evaluation";
 
@@ -75,7 +71,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error fetching all evaluation criteria", e);
+            throw new RuntimeException("Erreur : "+ e.getMessage());
         }
 
         return criteriaSet;
@@ -101,11 +97,11 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
             if (rowsInserted > 0) {
                 return new EvaluationCriteria(nextId, criteria.getName(), criteria.getDescription());
             } else {
-                throw new RuntimeException("Error inserting EvaluationCriteria");
+                throw new RuntimeException("Erreur d'insertion");
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error inserting EvaluationCriteria", e);
+            throw new RuntimeException("Error d'insertion : " + e.getMessage());
         }
     }
 
@@ -117,17 +113,17 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
 
         String updateQuery = "UPDATE criteres_evaluation SET nom = ?, description = ? WHERE numero = ?";
 
-        try (PreparedStatement stmt = connection.prepareStatement(updateQuery)) {
-            stmt.setString(1, criteria.getName());
-            stmt.setString(2, criteria.getDescription());
-            stmt.setInt(3, criteria.getId());
+        try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
+            ps.setString(1, criteria.getName());
+            ps.setString(2, criteria.getDescription());
+            ps.setInt(3, criteria.getId());
 
-            int rowsUpdated = stmt.executeUpdate();
+            int rowsUpdated = ps.executeUpdate();
 
             return rowsUpdated > 0;
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error updating EvaluationCriteria with id " + criteria.getId(), e);
+            throw new RuntimeException("Erreur : " + e.getMessage());
         }
     }
 
@@ -139,28 +135,37 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
 
         String deleteQuery = "DELETE FROM criteres_evaluation WHERE numero = ?";
 
-        try (PreparedStatement stmt = connection.prepareStatement(deleteQuery)) {
-            stmt.setInt(1, criteria.getId());
+        try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+            ps.setInt(1, criteria.getId());
 
-            int rowsDeleted = stmt.executeUpdate();
-            return rowsDeleted > 0;
+            int rowsDeleted = ps.executeUpdate();
+
+            if (rowsDeleted > 0) {
+                removeFromCache(criteria.getId());
+                return true;
+            }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error deleting EvaluationCriteria with id " + criteria.getId(), e);
+            throw new RuntimeException("Erreur : " +e.getMessage());
         }
+        return false;
     }
 
     @Override
     public boolean deleteById(int id) {
         String deleteQuery = "DELETE FROM criteres_evaluation WHERE numero = ?";
 
-        try (PreparedStatement stmt = connection.prepareStatement(deleteQuery)) {
-            stmt.setInt(1, id);
-            int rowsDeleted = stmt.executeUpdate();
-            return rowsDeleted > 0;
+        try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+            ps.setInt(1, id);
+            int rowsDeleted = ps.executeUpdate();
+
+            if (rowsDeleted > 0) {
+                removeFromCache(id);   // <-- idem ici
+                return true;
+            }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error deleting EvaluationCriteria with id " + id, e);
+            throw new RuntimeException("Erreur : " + e.getMessage());
         }
     }
 
