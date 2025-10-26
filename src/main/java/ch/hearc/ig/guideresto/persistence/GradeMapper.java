@@ -11,7 +11,7 @@ import java.util.*;
 public class GradeMapper extends AbstractMapper {
     private final Connection connection;
 
-    private Map<Long, Grade> gradeCache = new HashMap<Long, Grade>();
+    private Map<Integer, Grade> gradeCache = new HashMap<>();
 
     private EvaluationCriteriaMapper evaluationCriteriaMapper;
     private CompleteEvaluationMapper completeEvaluationMapper;
@@ -31,38 +31,32 @@ public class GradeMapper extends AbstractMapper {
     private Grade addToCache(ResultSet rs) throws SQLException {
         int id = rs.getInt("NUMERO");
 
-        if (!this.gradeCache.containsKey((long) id)) {
-            System.out.println("[CACHE MISS] Grade " + id);
-            Grade grade = new Grade();
-            grade.setId(id);
-            grade.setGrade(rs.getInt("NOTE"));
-            this.gradeCache.put((long) id, grade);
+        Grade grade = new Grade();
+        grade.setId(id);
+        grade.setGrade(rs.getInt("NOTE"));
+        addToCache(grade);
 
-            int evaluationId = rs.getInt("FK_COMM");
-            int criteriaId = rs.getInt("FK_CRIT");
+        int evaluationId = rs.getInt("FK_COMM");
+        int criteriaId = rs.getInt("FK_CRIT");
 
-            if (completeEvaluationMapper != null) {
-                grade.setEvaluation((CompleteEvaluation) completeEvaluationMapper.findById(evaluationId));
-            } else {
-                System.out.println("completeEvaluationMapper is null — skipping evaluation mapping for Grade " + id);
-            }
-
-            if (evaluationCriteriaMapper != null) {
-                grade.setCriteria((EvaluationCriteria) evaluationCriteriaMapper.findById(criteriaId));
-            } else {
-                System.out.println("evaluationCriteriaMapper is null — skipping criteria mapping for Grade " + id);
-            }
+        if (completeEvaluationMapper != null) {
+            grade.setEvaluation(completeEvaluationMapper.findById(evaluationId));
         } else {
-            System.out.println("[CACHE HIT] Grade " + id);
+            System.out.println("completeEvaluationMapper est null");
         }
-        return this.gradeCache.get((long) id);
+
+        if (evaluationCriteriaMapper != null) {
+            grade.setCriteria(evaluationCriteriaMapper.findById(criteriaId));
+        } else {
+            System.out.println("evaluationCriteriaMapper est null ");
+        }
+        return grade;
     }
 
 
     @Override
     public IBusinessObject findById(int id) {
         if (this.gradeCache.containsKey(id)) {
-            System.out.println("[CACHE HIT BEFORE QUERY] Grade " + id);
             return this.gradeCache.get(id);
         }
 
@@ -72,22 +66,11 @@ public class GradeMapper extends AbstractMapper {
                 s.setInt(1, id);
                 try (ResultSet rs = s.executeQuery()) {
                     if (rs.next()) {
-                        /*
-                        int gradeId = rs.getInt("numero");
-                        int note = rs.getInt("note");
-                        int evaluationId = rs.getInt("fk_comm");
-                        int criteriaId = rs.getInt("fk_crit");
-
-
-                        CompleteEvaluation evaluation = completeEvaluationMapper.findById(evaluationId);
-                        EvaluationCriteria criteria = (EvaluationCriteria) evaluationCriteriaMapper.findById(criteriaId);
-
-                         */
                         return addToCache(rs);
                     }
                 }
         } catch (SQLException e) {
-            throw new RuntimeException("Error finding grade with id " + id, e);
+            throw new RuntimeException("Erreur : " + e.getMessage());
         }
 
         return null;
@@ -106,14 +89,14 @@ public class GradeMapper extends AbstractMapper {
                     int note = rs.getInt("note");
                     int criteriaId = rs.getInt("fk_crit");
 
-                    EvaluationCriteria criteria = (EvaluationCriteria) evaluationCriteriaMapper.findById(criteriaId);
+                    EvaluationCriteria criteria = evaluationCriteriaMapper.findById(criteriaId);
 
                     Grade grade = new Grade(gradeId, note, null, criteria);
                     grades.add(grade);
                 }
             }
         } catch (SQLException e) {
-            throw new RuntimeException("Error finding grades for evaluation ID " + evaluationId, e);
+            throw new RuntimeException("Erreur : " + e.getMessage());
         }
 
         return grades;
@@ -122,6 +105,7 @@ public class GradeMapper extends AbstractMapper {
 
     @Override
     public Set findAll() {
+        resetCache();
         Set<Grade> grades = new HashSet<>();
         String selectQuery = "SELECT * FROM notes";
 
@@ -129,23 +113,12 @@ public class GradeMapper extends AbstractMapper {
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                /*int gradeId = rs.getInt("numero");
-                int note = rs.getInt("note");
-                int evaluationId = rs.getInt("fk_comm");
-                int criteriaId = rs.getInt("fk_crit");
-
-                CompleteEvaluation evaluation = completeEvaluationMapper.findById(evaluationId);
-                EvaluationCriteria criteria = (EvaluationCriteria) evaluationCriteriaMapper.findById(criteriaId);
-
-                Grade grade = new Grade(gradeId, note, evaluation, criteria);
-                grades.add(grade);
-                 */
                 Grade grade = addToCache(rs);
                 grades.add(grade);
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error fetching all grades", e);
+            throw new RuntimeException("Erreur : "+e.getMessage());
         }
 
         return grades;
@@ -170,13 +143,12 @@ public class GradeMapper extends AbstractMapper {
 
             if (rowsInserted > 0) {
                 return new Grade(nextId, grade.getGrade(), grade.getEvaluation(), grade.getCriteria());
-            } else {
-                throw new RuntimeException("Failed to insert grade into database");
             }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error creating grade", e);
+            throw new RuntimeException("Erreur : "+e.getMessage());
         }
+        return null;
     }
 
     @Override
@@ -197,7 +169,7 @@ public class GradeMapper extends AbstractMapper {
             return rowsUpdated > 0;
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error updating grade with id " + grade.getId(), e);
+            throw new RuntimeException("Erreur : " +e.getMessage());
         }
     }
 
@@ -209,30 +181,38 @@ public class GradeMapper extends AbstractMapper {
 
         String deleteQuery = "DELETE FROM notes WHERE numero = ?";
 
-        try (PreparedStatement stmt = connection.prepareStatement(deleteQuery)) {
-            stmt.setInt(1, grade.getId());
+        try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+            ps.setInt(1, grade.getId());
 
-            int rowsDeleted = stmt.executeUpdate();
-            return rowsDeleted > 0;
+            int rowsDeleted = ps.executeUpdate();
+            if (rowsDeleted > 0) {
+                removeFromCache(grade.getId());
+                return true;
+            }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error deleting grade with id " + grade.getId(), e);
+            throw new RuntimeException("Erreur : " + e.getMessage());
         }
+        return false;
     }
 
     @Override
     public boolean deleteById(int id) {
         String deleteQuery = "DELETE FROM notes WHERE numero = ?";
 
-        try (PreparedStatement stmt = connection.prepareStatement(deleteQuery)) {
-            stmt.setInt(1, id);
+        try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+            ps.setInt(1, id);
+            int rowsDeleted = ps.executeUpdate();
 
-            int rowsDeleted = stmt.executeUpdate();
-            return rowsDeleted > 0;
+            if (rowsDeleted > 0) {
+                removeFromCache(id);
+                return true;
+            }
 
         } catch (SQLException e) {
-            throw new RuntimeException("Error deleting grade with id " + id, e);
+            throw new RuntimeException("Erreur : " + e.getMessage());
         }
+        return false;
     }
 
     @Override

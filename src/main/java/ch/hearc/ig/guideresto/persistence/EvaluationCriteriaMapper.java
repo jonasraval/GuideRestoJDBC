@@ -167,6 +167,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
         } catch (SQLException e) {
             throw new RuntimeException("Erreur : " + e.getMessage());
         }
+        return false;
     }
 
     @Override
