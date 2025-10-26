@@ -292,7 +292,6 @@ public class Application {
             sb.append("Nombre de dislikes : N/A").append("\n");
         }
         sb.append("\nEvaluations reçues : ").append("\n");
-
         String text;
         for (Evaluation currentEval : restaurant.getEvaluations()) {
             text = getCompleteEvaluationDescription(currentEval);

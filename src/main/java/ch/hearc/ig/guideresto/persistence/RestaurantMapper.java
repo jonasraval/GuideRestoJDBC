@@ -17,6 +17,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
     private RestaurantTypeMapper restaurantTypeMapper;
     private CompleteEvaluationMapper completeEvaluationMapper;
     private CityMapper cityMapper;
+    private BasicEvaluationMapper basicEvaluationMapper;
 
     private Map<Integer, Restaurant> restaurantsCache = new HashMap<>(); //identity map
 
@@ -37,6 +38,11 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
             int typeId = rs.getInt("FK_TYPE");
             RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
             restaurant.setType(restaurantType);
+
+        if (completeEvaluationMapper != null) {
+            Set<CompleteEvaluation> completeEvals = completeEvaluationMapper.findByRestaurant(restaurant);
+            restaurant.getEvaluations().addAll(completeEvals);
+        }
 
             addToCache(restaurant);
         return restaurant;
@@ -91,7 +97,6 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                     Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
                     restaurant.setEvaluations(evaluations);
                 }
-
                 restaurantSet.add(restaurant);
             }
         } catch (SQLException ex) {

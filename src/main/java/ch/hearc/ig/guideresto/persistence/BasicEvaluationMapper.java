@@ -106,8 +106,6 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
             ps.setInt(4, eval.getRestaurant().getId());
 
             ps.executeUpdate();
-
-            // Maintenant on récupère le dernier ID utilisé par CE trigger
             try (PreparedStatement ps2 = connection.prepareStatement("SELECT SEQ_EVAL.CURRVAL FROM dual");
                  ResultSet rs = ps2.executeQuery()) {
                 if (rs.next()) {

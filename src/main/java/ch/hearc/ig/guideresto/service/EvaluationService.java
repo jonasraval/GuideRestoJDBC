@@ -51,6 +51,7 @@ public class EvaluationService implements IEvaluationService{
 
     @Override
     public int countLikesForRestaurant(int id, boolean like) {
-        return basicEvaluationMapper.countLikesForRestaurant(id, true);
+        return basicEvaluationMapper.countLikesForRestaurant(id, like);
     }
+
 }
