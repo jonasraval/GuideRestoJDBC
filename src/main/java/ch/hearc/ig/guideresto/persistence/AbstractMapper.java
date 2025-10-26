@@ -1,5 +1,6 @@
 package ch.hearc.ig.guideresto.persistence;
 
+import ch.hearc.ig.guideresto.business.BasicEvaluation;
 import ch.hearc.ig.guideresto.business.IBusinessObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,6 +23,7 @@ public abstract class AbstractMapper<T extends IBusinessObject> {
     public abstract boolean update(T object);
     public abstract boolean delete(T object);
     public abstract boolean deleteById(int id);
+    private Map<Integer, T> cache = new HashMap<>();
 
     protected abstract String getSequenceQuery();
     protected abstract String getExistsQuery();
@@ -94,16 +96,18 @@ public abstract class AbstractMapper<T extends IBusinessObject> {
      * @return true si le cache ne contient aucun objet, false sinon
      */
     protected boolean isCacheEmpty() {
-        // TODO à implémenter par vos soins
-        throw new UnsupportedOperationException("Vous devez implémenter votre cache vous-même !");
+        if (cache.isEmpty()) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
      * Vide le cache
      */
     protected void resetCache() {
-        // TODO à implémenter par vos soins
-        throw new UnsupportedOperationException("Vous devez implémenter votre cache vous-même !");
+        cache.clear();
     }
 
     /**
@@ -111,8 +115,9 @@ public abstract class AbstractMapper<T extends IBusinessObject> {
      * @param objet l'objet à ajouter
      */
     protected void addToCache(T objet) {
-        // TODO à implémenter par vos soins
-        throw new UnsupportedOperationException("Vous devez implémenter votre cache vous-même !");
+        if (objet != null && objet.getId() != null) {
+            cache.put(objet.getId(), objet);
+        }
     }
 
     /**
@@ -120,7 +125,6 @@ public abstract class AbstractMapper<T extends IBusinessObject> {
      * @param id l'ID de l'objet à retirer du cache
      */
     protected void removeFromCache(Integer id) {
-        // TODO à implémenter par vos soins
-        throw new UnsupportedOperationException("Vous devez implémenter votre cache vous-même !");
+        cache.remove(id);
     }
 }
