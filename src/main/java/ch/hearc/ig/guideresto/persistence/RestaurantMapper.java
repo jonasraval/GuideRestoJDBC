@@ -18,13 +18,10 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
     private CompleteEvaluationMapper completeEvaluationMapper;
     private CityMapper cityMapper;
 
-    private Map<Long, Restaurant> restaurantsCache = new HashMap<>(); //identity map
+    private Map<Integer, Restaurant> restaurantsCache = new HashMap<>(); //identity map
 
     private Restaurant addToCache(ResultSet rs) throws SQLException {
         int id = rs.getInt("NUMERO");
-
-        if (!this.restaurantsCache.containsKey((long) id)) {
-            System.out.println("[CACHE MISS] Restaurant " + id + " créé depuis DB");
             Restaurant restaurant = new Restaurant();
             restaurant.setId(id);
             restaurant.setName(rs.getString("NOM"));
@@ -41,11 +38,8 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
             RestaurantType restaurantType = restaurantTypeMapper.findById(typeId);
             restaurant.setType(restaurantType);
 
-            restaurantsCache.put((long) id, restaurant);
-        } else{
-            System.out.println("[CACHE HIT] Restaurant " + id + " récupéré depuis cache");
-        }
-        return this.restaurantsCache.get((long) id);
+            addToCache(restaurant);
+        return restaurant;
     }
 
     public RestaurantMapper(Connection connection) {
@@ -57,7 +51,6 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
     @Override
     public Restaurant findById(int id) {
         if (restaurantsCache.containsKey(id)) {
-            System.out.println("[CACHE HIT BEFORE QUERY] Restaurant " + id);
             return restaurantsCache.get(id);
         }
         String sql= "SELECT * FROM restaurants WHERE numero = ?";
@@ -65,7 +58,6 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    System.out.println("[CACHE MISS BEFORE QUERY] Restaurant " + id + " → requête SQL");
 
                     Restaurant restaurant = addToCache(rs);
 
@@ -78,13 +70,14 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
             }
         } catch (SQLException ex){
-            System.err.println(ex.getMessage());
+            System.err.println("Erreur : "+ex.getMessage());
         }
         return null;
     }
 
     @Override
     public Set<Restaurant> findAll() {
+        resetCache();
         Set<Restaurant> restaurantSet = new HashSet<>();
         String sql = "SELECT * FROM RESTAURANTS";
         try (PreparedStatement ps = connection.prepareStatement(sql);
@@ -102,7 +95,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                 restaurantSet.add(restaurant);
             }
         } catch (SQLException ex) {
-            ex.printStackTrace();
+            System.err.println("Erreur : "+ex.getMessage());
         }
         return restaurantSet;
     }
@@ -133,7 +126,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                 }
             }
         } catch (SQLException ex) {
-            throw new RuntimeException("Error finding restaurants in city: " + cityName, ex);
+            throw new RuntimeException("Erreur : " + ex.getMessage());
         }
 
         return restaurantSet;
@@ -161,7 +154,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                 }
             }
         } catch (SQLException ex) {
-            throw new RuntimeException("Erreur lors de la recherche des restaurants pour le type ID " + typeId, ex);
+            throw new RuntimeException("Erreur lors de la recherche des restaurants pour le type ID " + ex.getMessage());
         }
 
         return restaurantSet;
@@ -187,7 +180,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
                 }
             }
         } catch (SQLException ex) {
-            throw new RuntimeException("Erreur lors de la recherche de restaurants par nom : " + name, ex);
+            throw new RuntimeException("Erreur lors de la recherche de restaurants par nom : " + ex.getMessage());
         }
 
         return restaurantSet;
@@ -198,7 +191,6 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public Restaurant create(Restaurant restaurant) {
-        //String insertSql = "INSERT INTO restaurants (NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) VALUES (?,?,?,?,?,?)";
         String insertSql = "INSERT INTO restaurants (NUMERO, NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) " +
                 "VALUES (SEQ_RESTAURANTS.NEXTVAL, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(insertSql, new String[]{"NUMERO"})) {
@@ -253,13 +245,17 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, restaurant.getId());
-            int rows = ps.executeUpdate();
-            return rows > 0;
+            int rowsDeleted = ps.executeUpdate();
+            if (rowsDeleted > 0) {
+                removeFromCache(restaurant.getId());
+                return true;
+            }
 
         } catch (SQLException e) {
-            e.getMessage();
+            System.err.println(e.getMessage());
             return false;
         }
+        return false;
     }
 
     @Override
@@ -268,13 +264,18 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
-            int rows = ps.executeUpdate();
-            return rows > 0;
+            int rowsDeleted = ps.executeUpdate();
+
+            if (rowsDeleted > 0) {
+                removeFromCache(id);
+                return true;
+            }
 
         } catch (SQLException e) {
-            e.getMessage();
+            System.err.println(e.getMessage());
             return false;
         }
+        return false;
     }
 
     @Override

@@ -43,7 +43,6 @@ public class PersistanceContext implements AutoCloseable {
         if (connection != null) {
             try {
                 connection.close();
-                System.out.println("Connexion JDBC fermée proprement.");
             } catch (SQLException e) {
                 System.err.println("Erreur lors de la fermeture de la connexion : " + e.getMessage());
             }
