@@ -8,7 +8,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class CompleteEvaluationMapper  extends AbstractMapper{
+public class CompleteEvaluationMapper  extends AbstractMapper<CompleteEvaluation>{
     private final Connection connection;
     private RestaurantMapper restaurantMapper;
     private GradeMapper gradeMapper;
@@ -142,10 +142,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
 
 
     @Override
-    public CompleteEvaluation create(IBusinessObject object) {
-        if (!(object instanceof CompleteEvaluation evaluation)) {
-            throw new IllegalArgumentException("Object must be an instance of CompleteEvaluation");
-        }
+    public CompleteEvaluation create(CompleteEvaluation evaluation) {
         String insertQuery = "INSERT INTO commentaires (numero, date_eval, commentaire, nom_utilisateur, fk_rest) VALUES (?, ?, ?, ?, ?)";
         try (PreparedStatement s = connection.prepareStatement(insertQuery)) {
             int nextId = getSequenceValue();
@@ -175,10 +172,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
     }
 
     @Override
-    public boolean update(IBusinessObject object) {
-        if (!(object instanceof CompleteEvaluation evaluation)) {
-            throw new IllegalArgumentException("Object must be an instance of CompleteEvaluation");
-        }
+    public boolean update(CompleteEvaluation evaluation) {
 
         String updateQuery = "UPDATE commentaires SET date_eval = ?, commentaire = ?, nom_utilisateur = ?, fk_rest = ? WHERE numero = ?";
 
@@ -215,10 +209,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
     }
 
     @Override
-    public boolean delete(IBusinessObject object) {
-        if (!(object instanceof CompleteEvaluation evaluation)) {
-            throw new IllegalArgumentException("Object must be an instance of CompleteEvaluation");
-        }
+    public boolean delete(CompleteEvaluation evaluation) {
 
         String deleteQuery = "DELETE FROM commentaires WHERE numero = ?";
 

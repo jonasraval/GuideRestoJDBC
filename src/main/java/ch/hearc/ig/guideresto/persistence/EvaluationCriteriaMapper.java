@@ -12,7 +12,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class EvaluationCriteriaMapper extends AbstractMapper {
+public class EvaluationCriteriaMapper extends AbstractMapper<EvaluationCriteria> {
     private final Connection connection;
 
     private Map<Integer, EvaluationCriteria> evaluationCriteriaCache = new HashMap<>();
@@ -78,10 +78,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
     }
 
     @Override
-    public IBusinessObject create(IBusinessObject object) {
-        if (!(object instanceof EvaluationCriteria criteria)) {
-            throw new IllegalArgumentException("Object must be an instance of EvaluationCriteria");
-        }
+    public EvaluationCriteria create(EvaluationCriteria criteria) {
 
         String insertQuery = "INSERT INTO criteres_evaluation (numero, nom, description) VALUES (?, ?, ?)";
 
@@ -106,10 +103,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
     }
 
     @Override
-    public boolean update(IBusinessObject object) {
-        if (!(object instanceof EvaluationCriteria criteria)) {
-            throw new IllegalArgumentException("Object must be an instance of EvaluationCriteria");
-        }
+    public boolean update(EvaluationCriteria criteria) {
 
         String updateQuery = "UPDATE criteres_evaluation SET nom = ?, description = ? WHERE numero = ?";
 
@@ -128,10 +122,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
     }
 
     @Override
-    public boolean delete(IBusinessObject object) {
-        if (!(object instanceof EvaluationCriteria criteria)) {
-            throw new IllegalArgumentException("Object must be an instance of EvaluationCriteria");
-        }
+    public boolean delete(EvaluationCriteria criteria) {
 
         String deleteQuery = "DELETE FROM criteres_evaluation WHERE numero = ?";
 

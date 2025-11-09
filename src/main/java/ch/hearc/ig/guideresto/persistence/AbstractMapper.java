@@ -1,6 +1,5 @@
 package ch.hearc.ig.guideresto.persistence;
 
-import ch.hearc.ig.guideresto.business.BasicEvaluation;
 import ch.hearc.ig.guideresto.business.IBusinessObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

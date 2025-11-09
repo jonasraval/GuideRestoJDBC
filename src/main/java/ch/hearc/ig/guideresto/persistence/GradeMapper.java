@@ -8,7 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
-public class GradeMapper extends AbstractMapper {
+public class GradeMapper extends AbstractMapper<Grade> {
     private final Connection connection;
 
     private Map<Integer, Grade> gradeCache = new HashMap<>();
@@ -55,7 +55,7 @@ public class GradeMapper extends AbstractMapper {
 
 
     @Override
-    public IBusinessObject findById(int id) {
+    public Grade findById(int id) {
         if (this.gradeCache.containsKey(id)) {
             return this.gradeCache.get(id);
         }
@@ -125,10 +125,7 @@ public class GradeMapper extends AbstractMapper {
     }
 
     @Override
-    public IBusinessObject create(IBusinessObject object) {
-        if (!(object instanceof Grade grade)) {
-            throw new IllegalArgumentException("Object must be an instance of Grade");
-        }
+    public Grade create(Grade grade) {
 
         String insertQuery = "INSERT INTO notes (numero, note, fk_comm, fk_crit) VALUES (?, ?, ?, ?)";
 
@@ -152,10 +149,7 @@ public class GradeMapper extends AbstractMapper {
     }
 
     @Override
-    public boolean update(IBusinessObject object) {
-        if (!(object instanceof Grade grade)) {
-            throw new IllegalArgumentException("Object must be an instance of Grade");
-        }
+    public boolean update(Grade grade) {
 
         String updateQuery = "UPDATE notes SET note = ?, fk_comm = ?, fk_crit = ? WHERE numero = ?";
 
@@ -174,10 +168,7 @@ public class GradeMapper extends AbstractMapper {
     }
 
     @Override
-    public boolean delete(IBusinessObject object) {
-        if (!(object instanceof Grade grade)) {
-            throw new IllegalArgumentException("Object must be an instance of Grade");
-        }
+    public boolean delete(Grade grade) {
 
         String deleteQuery = "DELETE FROM notes WHERE numero = ?";
 
