@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -69,7 +70,7 @@ public class Application {
      *
      * @param choice Un nombre entre 0 et 5.
      */
-    private static void proceedMainMenu(int choice) {
+    private static void proceedMainMenu(int choice) throws SQLException {
         switch (choice) {
             case 1:
                 showRestaurantsList();
@@ -186,9 +187,13 @@ public class Application {
             System.out.println("Veuillez entrer le nom de la nouvelle ville : ");
             String cityName = readString();
 
-            City city = restaurantService.createCity(zipCode, cityName);
-            System.out.println("Nouvelle ville ajoutée avec succès !");
-            return city;
+            try {
+                City city = restaurantService.createCity(zipCode, cityName);
+                System.out.println("Nouvelle ville ajoutée avec succès !");
+                return city;
+            } catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
         }
 
         return searchCityByZipCode(cities, choice);
@@ -236,7 +241,7 @@ public class Application {
     /**
      * Le programme demande les informations nécessaires à l'utilisateur puis crée un nouveau restaurant dans le système.
      */
-    private static void addNewRestaurant() {
+    private static void addNewRestaurant() throws SQLException {
         //Affichage
         System.out.println("Vous allez ajouter un nouveau restaurant !");
         System.out.println("Quel est son nom ?");
@@ -259,9 +264,12 @@ public class Application {
             restaurantType = pickRestaurantType(restaurantService.getAllRestaurantsTypes());
         } while (restaurantType == null);
 
-        Restaurant restaurant = restaurantService.createRestaurant(null, name, description, website, street, city, restaurantType);
-
-        showRestaurant(restaurant);
+        try {
+            Restaurant restaurant = restaurantService.createRestaurant(null, name, description, website, street, city, restaurantType);
+            showRestaurant(restaurant);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
     }
 
     /**
@@ -394,10 +402,13 @@ public class Application {
             logger.error("Error - Couldn't retreive host IP address");
             ipAddress = "Indisponible";
         }
-
-        evaluationService.addBasicEvaluation(restaurant, like, ipAddress);
-
-        System.out.println("Votre vote a été pris en compte !");
+        try {
+            evaluationService.addBasicEvaluation(restaurant, like, ipAddress);
+            System.out.println("Votre vote a été pris en compte !");
+        } catch (Exception ex) {
+            System.out.println("Une erreur est survenue lors de l'enregistrement de votre vote. Veuillez réessayer.");
+            logger.error("Failed to add basic evaluation for restaurant: " + restaurant.getName(), ex);
+        }
     }
 
     /**
@@ -406,23 +417,27 @@ public class Application {
      * @param restaurant Le restaurant à évaluer
      */
     private static void evaluateRestaurant(Restaurant restaurant) {
-        System.out.println("Merci d'évaluer ce restaurant !");
-        System.out.println("Quel est votre nom d'utilisateur ? ");
-        String username = readString();
-        System.out.println("Quel commentaire aimeriez-vous publier ?");
-        String comment = readString();
+        try {
+            System.out.println("Merci d'évaluer ce restaurant !");
+            System.out.println("Quel est votre nom d'utilisateur ? ");
+            String username = readString();
+            System.out.println("Quel commentaire aimeriez-vous publier ?");
+            String comment = readString();
 
-        Map<EvaluationCriteria, Integer> gradesMap = new HashMap<>();
+            Map<EvaluationCriteria, Integer> gradesMap = new HashMap<>();
 
-        for (EvaluationCriteria criteria : evaluationService.getAllCriteria()) {
-            System.out.println(criteria.getName() + " : " + criteria.getDescription());
-            Integer note = readInt();
-            gradesMap.put(criteria, note);
+            for (EvaluationCriteria criteria : evaluationService.getAllCriteria()) {
+                System.out.println(criteria.getName() + " : " + criteria.getDescription());
+                Integer note = readInt();
+                gradesMap.put(criteria, note);
+            }
+
+            evaluationService.evaluateRestaurant(restaurant, username, comment, gradesMap);
+            System.out.println("Votre évaluation a bien été enregistrée, merci !");
+        } catch (Exception ex) {
+            System.out.println("Une erreur est survenue lors de l'enregistrement de votre évaluation : " + ex.getMessage());
+            logger.error("Erreur lors de l'évaluation d'un restaurant", ex);
         }
-
-        evaluationService.evaluateRestaurant(restaurant, username, comment, gradesMap);
-
-        System.out.println("Votre évaluation a bien été enregistrée, merci !");
     }
 
     /**
@@ -443,11 +458,14 @@ public class Application {
         System.out.println("Nouveau type de restaurant : ");
 
         RestaurantType newType = pickRestaurantType(restaurantService.getAllRestaurantsTypes());
-        restaurantService.editRestaurantType(restaurant, newType);
-
-        restaurantService.updateRestaurant(restaurant);
-
-        System.out.println("Merci, le restaurant a bien été modifié !");
+        try {
+            restaurantService.editRestaurantType(restaurant, newType);
+            restaurantService.updateRestaurant(restaurant);
+            System.out.println("Merci, le restaurant a bien été modifié !");
+        } catch (Exception ex) {
+            System.out.println("Erreur lors de la modification du restaurant. Veuillez réessayer.");
+            logger.error("Impossible de mettre à jour le restaurant : " + restaurant.getName(), ex);
+        }
     }
 
     /**
@@ -463,12 +481,17 @@ public class Application {
         restaurant.getAddress().setStreet(readString());
 
         City newCity = pickCity(restaurantService.getAllCities());
-        if (newCity != null && newCity != restaurant.getAddress().getCity()) {
-            restaurantService.editRestaurantAddress(restaurant, newCity);
-        }
-        restaurantService.updateRestaurant(restaurant);
+        try {
+            if (newCity != null && newCity != restaurant.getAddress().getCity()) {
+                restaurantService.editRestaurantAddress(restaurant, newCity);
+            }
 
-        System.out.println("L'adresse a bien été modifiée ! Merci !");
+            restaurantService.updateRestaurant(restaurant);
+            System.out.println("L'adresse a bien été modifiée ! Merci !");
+        } catch (Exception ex) {
+            System.out.println("Erreur lors de la modification de l'adresse du restaurant. Veuillez réessayer.");
+            logger.error("Impossible de mettre à jour l'adresse du restaurant : " + restaurant.getName(), ex);
+        }
     }
 
     /**
@@ -479,10 +502,16 @@ public class Application {
     private static void deleteRestaurant(Restaurant restaurant) {
         System.out.println("Etes-vous sûr de vouloir supprimer ce restaurant ? (O/n)");
         String choice = readString();
-        if (choice.equals("o") || choice.equals("O")) {
-
-            restaurantService.deleteRestaurant(restaurant);
-            System.out.println("Le restaurant a bien été supprimé !");
+        if (choice.equalsIgnoreCase("o")) {
+            try {
+                restaurantService.deleteRestaurant(restaurant);
+                System.out.println("Le restaurant a bien été supprimé !");
+            } catch (Exception ex) {
+                System.out.println("Erreur lors de la suppression du restaurant. Veuillez réessayer.");
+                logger.error("Impossible de supprimer le restaurant : " + restaurant.getName(), ex);
+            }
+        } else {
+            System.out.println("Suppression annulée.");
         }
     }
 
