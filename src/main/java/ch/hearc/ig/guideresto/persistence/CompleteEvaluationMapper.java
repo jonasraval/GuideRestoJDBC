@@ -9,6 +9,16 @@ import java.util.Map;
 import java.util.Set;
 
 public class CompleteEvaluationMapper  extends AbstractMapper{
+    private static final String SELECT_BY_ID = "SELECT * FROM commentaires WHERE NUMERO = ?";
+    private static final String SELECT_ALL = "SELECT * FROM commentaires";
+    private static final String SELECT_BY_RESTAURANT = "SELECT * FROM commentaires WHERE fk_rest = ?";
+    private static final String INSERT_QUERY = "INSERT INTO commentaires (numero, date_eval, commentaire, nom_utilisateur, fk_rest) VALUES (?, ?, ?, ?, ?)";
+    private static final String UPDATE_QUERY = "UPDATE commentaires SET date_eval = ?, commentaire = ?, nom_utilisateur = ?, fk_rest = ? WHERE numero = ?";
+    private static final String DELETE_QUERY = "DELETE FROM commentaires WHERE numero = ?";
+    private static final String SEQUENCE_QUERY = "SELECT SEQ_EVAL.NEXTVAL FROM dual";
+    private static final String EXISTS_QUERY = "SELECT 1 FROM commentaires WHERE numero = ?";
+    private static final String COUNT_QUERY = "SELECT COUNT(*) FROM commentaires";
+
     private final Connection connection;
     private RestaurantMapper restaurantMapper;
     private GradeMapper gradeMapper;
@@ -67,9 +77,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
             return completeEvaluationCache.get(id);
         }
 
-        String selectQuery = "SELECT * FROM commentaires WHERE NUMERO = ?";
-
-        try (PreparedStatement s = connection.prepareStatement(selectQuery)) {
+        try (PreparedStatement s = connection.prepareStatement(SELECT_BY_ID)) {
             s.setInt(1,id);
             try (ResultSet rs = s.executeQuery()) {
                 if (rs.next()) {
@@ -87,9 +95,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
         resetCache();
 
         Set<CompleteEvaluation> evaluations = new HashSet<>();
-        String selectQuery = "SELECT * FROM commentaires";
-
-        try (PreparedStatement s = connection.prepareStatement(selectQuery);
+        try (PreparedStatement s = connection.prepareStatement(SELECT_ALL);
              ResultSet rs = s.executeQuery()) {
             while (rs.next()) {
                 evaluations.add(addToCache(rs));
@@ -103,9 +109,8 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
 
     public Set<CompleteEvaluation> findByRestaurant(Restaurant restaurant) {
         Set<CompleteEvaluation> evaluations = new HashSet<>();
-        String query = "SELECT * FROM commentaires WHERE fk_rest = ?";
 
-        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_BY_RESTAURANT )) {
             stmt.setInt(1, restaurant.getId());
 
             try (ResultSet rs = stmt.executeQuery()) {
@@ -139,15 +144,12 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
         return evaluations;
     }
 
-
-
     @Override
     public CompleteEvaluation create(IBusinessObject object) {
         if (!(object instanceof CompleteEvaluation evaluation)) {
             throw new IllegalArgumentException("Object must be an instance of CompleteEvaluation");
         }
-        String insertQuery = "INSERT INTO commentaires (numero, date_eval, commentaire, nom_utilisateur, fk_rest) VALUES (?, ?, ?, ?, ?)";
-        try (PreparedStatement s = connection.prepareStatement(insertQuery)) {
+        try (PreparedStatement s = connection.prepareStatement(INSERT_QUERY )) {
             int nextId = getSequenceValue();
             s.setInt(1, nextId);
             s.setDate(2, new java.sql.Date(evaluation.getVisitDate().getTime()));            s.setString(3, evaluation.getComment());
@@ -179,10 +181,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
         if (!(object instanceof CompleteEvaluation evaluation)) {
             throw new IllegalArgumentException("Object must be an instance of CompleteEvaluation");
         }
-
-        String updateQuery = "UPDATE commentaires SET date_eval = ?, commentaire = ?, nom_utilisateur = ?, fk_rest = ? WHERE numero = ?";
-
-        try (PreparedStatement s = connection.prepareStatement(updateQuery)) {
+        try (PreparedStatement s = connection.prepareStatement(UPDATE_QUERY )) {
             s.setDate(1, new java.sql.Date(evaluation.getVisitDate().getTime()));
             s.setString(2, evaluation.getComment());
             s.setString(3, evaluation.getUsername());
@@ -219,9 +218,6 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
         if (!(object instanceof CompleteEvaluation evaluation)) {
             throw new IllegalArgumentException("Object must be an instance of CompleteEvaluation");
         }
-
-        String deleteQuery = "DELETE FROM commentaires WHERE numero = ?";
-
         try {
             GradeMapper gradeMapper = new GradeMapper(connection);
             if (evaluation.getGrades() != null && !evaluation.getGrades().isEmpty()) {
@@ -232,7 +228,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
                 }
             }
 
-            try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+            try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY )) {
                 ps.setInt(1, evaluation.getId());
                 int rowsDeleted = ps.executeUpdate();
                 int rows = ps.executeUpdate();
@@ -251,7 +247,6 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
     @Override
     public boolean deleteById(int id) {
         CompleteEvaluation evaluation = findById(id);
-
         if (evaluation != null) {
             return delete(evaluation);
         } else {
@@ -261,17 +256,17 @@ public class CompleteEvaluationMapper  extends AbstractMapper{
 
     @Override
     protected String getSequenceQuery() {
-        return "SELECT SEQ_EVAL.NEXTVAL FROM dual";
+        return SEQUENCE_QUERY;
     }
 
     @Override
     protected String getExistsQuery() {
-        return "SELECT 1 FROM commentaires WHERE numero = ?";
+        return  EXISTS_QUERY;
     }
 
     @Override
     protected String getCountQuery() {
-        return "SELECT COUNT(*) FROM commentaires";
+        return COUNT_QUERY ;
     }
 
 

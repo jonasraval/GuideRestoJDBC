@@ -7,6 +7,16 @@ import java.sql.*;
 import java.util.*;
 
 public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
+    private static final String SELECT_BY_ID_QUERY = "SELECT * FROM LIKES WHERE NUMERO = ?";
+    private static final String SELECT_ALL_QUERY = "SELECT * FROM LIKES";
+    private static final String COUNT_BY_RESTAURANT_QUERY = "SELECT COUNT(*) FROM LIKES WHERE FK_REST = ? AND APPRECIATION = ?";
+    private static final String INSERT_QUERY = "INSERT INTO LIKES (NUMERO, APPRECIATION, DATE_EVAL, ADRESSE_IP, FK_REST) VALUES (SEQ_EVAL.NEXTVAL, ?, ?, ?, ?)";
+    private static final String UPDATE_QUERY = "UPDATE LIKES SET APPRECIATION=?, DATE_EVAL=?, ADRESSE_IP=?, FK_REST=? WHERE NUMERO=?";
+    private static final String DELETE_QUERY = "DELETE FROM LIKES WHERE NUMERO=?";
+    private static final String EXISTS_QUERY = "SELECT 1 FROM LIKES WHERE NUMERO=?";
+    private static final String COUNT_QUERY = "SELECT COUNT(*) FROM LIKES";
+    private static final String SEQUENCE_QUERY = "SELECT SEQ_EVAL.NEXTVAL FROM dual";
+
 
     private final Connection connection;
     private RestaurantMapper restaurantMapper;
@@ -45,8 +55,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
             return basicEvaluationCache.get(id);
         }
 
-        String sql = "SELECT * FROM LIKES WHERE NUMERO = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(SELECT_BY_ID_QUERY)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -64,9 +73,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
         resetCache();
 
         Set<BasicEvaluation> basicEvaluationSet = new HashSet<>();
-        String sql = "SELECT * FROM LIKES";
-
-        try (PreparedStatement ps = connection.prepareStatement(sql);
+        try (PreparedStatement ps = connection.prepareStatement(SELECT_ALL_QUERY);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 basicEvaluationSet.add(addToCache(rs));
@@ -78,8 +85,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
     }
 
     public int countLikesForRestaurant(int restaurantId, boolean like) {
-        String sql = "SELECT COUNT(*) FROM LIKES WHERE FK_REST = ? AND APPRECIATION = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(COUNT_BY_RESTAURANT_QUERY)) {
             ps.setInt(1, restaurantId);
             ps.setString(2, like ? "Y" : "N");
             try (ResultSet rs = ps.executeQuery()) {
@@ -94,12 +100,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
 
     @Override
     public BasicEvaluation create(BasicEvaluation eval) {
-        String insertSql =
-                "INSERT INTO LIKES (NUMERO, APPRECIATION, DATE_EVAL, ADRESSE_IP, FK_REST) " +
-                        "VALUES (SEQ_EVAL.NEXTVAL, ?, ?, ?, ?)";
-
-        try (PreparedStatement ps = connection.prepareStatement(insertSql)) {
-
+        try (PreparedStatement ps = connection.prepareStatement(INSERT_QUERY )) {
             ps.setString(1, eval.getLikeRestaurant() ? "Y" : "N");
             ps.setDate(2, new java.sql.Date(eval.getVisitDate().getTime()));
             ps.setString(3, eval.getIpAddress());
@@ -122,8 +123,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
 
     @Override
     public boolean update(BasicEvaluation eval) {
-        String sql = "UPDATE LIKES SET APPRECIATION=?, DATE_EVAL=?, ADRESSE_IP=?, FK_REST=? WHERE NUMERO=?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(UPDATE_QUERY )) {
             ps.setString(1, Boolean.TRUE.equals(eval.getLikeRestaurant()) ? "Y" : "N");
             ps.setDate(2, new java.sql.Date(eval.getVisitDate().getTime()));
             ps.setString(3, eval.getIpAddress());
@@ -143,8 +143,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
 
     @Override
     public boolean deleteById(int id) {
-        String sql = "DELETE FROM LIKES WHERE NUMERO=?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY )) {
             ps.setInt(1, id);
             int rows = ps.executeUpdate();
             if (rows > 0) {
@@ -159,16 +158,16 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
 
     @Override
     protected String getSequenceQuery() {
-        return null;
+        return SEQUENCE_QUERY;
     }
 
     @Override
     protected String getExistsQuery() {
-        return "SELECT 1 FROM LIKES WHERE NUMERO=?";
+        return EXISTS_QUERY;
     }
 
     @Override
     protected String getCountQuery() {
-        return "SELECT COUNT(*) FROM LIKES";
+        return COUNT_QUERY;
     }
 }

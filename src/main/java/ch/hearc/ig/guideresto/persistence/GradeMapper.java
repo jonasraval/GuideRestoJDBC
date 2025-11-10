@@ -9,6 +9,16 @@ import java.sql.SQLException;
 import java.util.*;
 
 public class GradeMapper extends AbstractMapper {
+    private static final String SELECT_BY_ID = "SELECT * FROM notes WHERE numero = ?";
+    private static final String SELECT_ALL = "SELECT * FROM notes";
+    private static final String SELECT_BY_EVALUATION_ID = "SELECT * FROM notes WHERE fk_comm = ?";
+    private static final String INSERT_QUERY = "INSERT INTO notes (numero, note, fk_comm, fk_crit) VALUES (?, ?, ?, ?)";
+    private static final String UPDATE_QUERY = "UPDATE notes SET note = ?, fk_comm = ?, fk_crit = ? WHERE numero = ?";
+    private static final String DELETE_QUERY = "DELETE FROM notes WHERE numero = ?";
+    private static final String SEQUENCE_QUERY = "SELECT SEQ_NOTES.NEXTVAL FROM dual";
+    private static final String EXISTS_QUERY = "SELECT 1 FROM notes WHERE numero = ?";
+    private static final String COUNT_QUERY = "SELECT COUNT(*) FROM notes";
+
     private final Connection connection;
 
     private Map<Integer, Grade> gradeCache = new HashMap<>();
@@ -59,10 +69,7 @@ public class GradeMapper extends AbstractMapper {
         if (this.gradeCache.containsKey(id)) {
             return this.gradeCache.get(id);
         }
-
-        String selectQuery = "SELECT * FROM notes WHERE numero = ?";
-
-        try (PreparedStatement s = connection.prepareStatement(selectQuery)){
+        try (PreparedStatement s = connection.prepareStatement(SELECT_BY_ID)){
                 s.setInt(1, id);
                 try (ResultSet rs = s.executeQuery()) {
                     if (rs.next()) {
@@ -78,9 +85,7 @@ public class GradeMapper extends AbstractMapper {
 
     public Set<Grade> findByEvaluationId(int evaluationId) {
         Set<Grade> grades = new HashSet<>();
-        String query = "SELECT * FROM notes WHERE fk_comm = ?";
-
-        try (PreparedStatement stmt = connection.prepareStatement(query)) {
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_BY_EVALUATION_ID )) {
             stmt.setInt(1, evaluationId);
             try (ResultSet rs = stmt.executeQuery()) {
 
@@ -107,9 +112,7 @@ public class GradeMapper extends AbstractMapper {
     public Set findAll() {
         resetCache();
         Set<Grade> grades = new HashSet<>();
-        String selectQuery = "SELECT * FROM notes";
-
-        try (PreparedStatement stmt = connection.prepareStatement(selectQuery);
+        try (PreparedStatement stmt = connection.prepareStatement(SELECT_ALL );
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
@@ -129,10 +132,7 @@ public class GradeMapper extends AbstractMapper {
         if (!(object instanceof Grade grade)) {
             throw new IllegalArgumentException("Object must be an instance of Grade");
         }
-
-        String insertQuery = "INSERT INTO notes (numero, note, fk_comm, fk_crit) VALUES (?, ?, ?, ?)";
-
-        try (PreparedStatement stmt = connection.prepareStatement(insertQuery)) {
+        try (PreparedStatement stmt = connection.prepareStatement(INSERT_QUERY )) {
             int nextId = getSequenceValue();
             stmt.setInt(1, nextId);
             stmt.setInt(2, grade.getGrade());
@@ -156,10 +156,7 @@ public class GradeMapper extends AbstractMapper {
         if (!(object instanceof Grade grade)) {
             throw new IllegalArgumentException("Object must be an instance of Grade");
         }
-
-        String updateQuery = "UPDATE notes SET note = ?, fk_comm = ?, fk_crit = ? WHERE numero = ?";
-
-        try (PreparedStatement stmt = connection.prepareStatement(updateQuery)) {
+        try (PreparedStatement stmt = connection.prepareStatement(UPDATE_QUERY )) {
             stmt.setInt(1, grade.getGrade());
             stmt.setInt(2, grade.getEvaluation().getId());
             stmt.setInt(3, grade.getCriteria().getId());
@@ -178,10 +175,7 @@ public class GradeMapper extends AbstractMapper {
         if (!(object instanceof Grade grade)) {
             throw new IllegalArgumentException("Object must be an instance of Grade");
         }
-
-        String deleteQuery = "DELETE FROM notes WHERE numero = ?";
-
-        try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+        try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY )) {
             ps.setInt(1, grade.getId());
 
             int rowsDeleted = ps.executeUpdate();
@@ -198,9 +192,7 @@ public class GradeMapper extends AbstractMapper {
 
     @Override
     public boolean deleteById(int id) {
-        String deleteQuery = "DELETE FROM notes WHERE numero = ?";
-
-        try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+        try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY )) {
             ps.setInt(1, id);
             int rowsDeleted = ps.executeUpdate();
 
@@ -217,16 +209,16 @@ public class GradeMapper extends AbstractMapper {
 
     @Override
     protected String getSequenceQuery() {
-        return "SELECT SEQ_NOTES.NEXTVAL FROM dual";
+        return SEQUENCE_QUERY ;
     }
 
     @Override
     protected String getExistsQuery() {
-        return "SELECT 1 FROM notes WHERE numero = ?";
+        return EXISTS_QUERY ;
     }
 
     @Override
     protected String getCountQuery() {
-        return "SELECT COUNT(*) FROM notes";
+        return COUNT_QUERY ;
     }
 }

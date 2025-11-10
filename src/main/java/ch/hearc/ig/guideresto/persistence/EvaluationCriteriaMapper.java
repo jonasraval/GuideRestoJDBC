@@ -13,8 +13,16 @@ import java.util.Map;
 import java.util.Set;
 
 public class EvaluationCriteriaMapper extends AbstractMapper {
-    private final Connection connection;
+    private static final String SELECT_BY_ID = "SELECT * FROM criteres_evaluation WHERE numero = ?";
+    private static final String SELECT_ALL = "SELECT * FROM criteres_evaluation";
+    private static final String INSERT_QUERY = "INSERT INTO criteres_evaluation (numero, nom, description) VALUES (?, ?, ?)";
+    private static final String UPDATE_QUERY = "UPDATE criteres_evaluation SET nom = ?, description = ? WHERE numero = ?";
+    private static final String DELETE_QUERY = "DELETE FROM criteres_evaluation WHERE numero = ?";
+    private static final String SEQUENCE_QUERY = "SELECT SEQ_CRITERES_EVALUATION.NEXTVAL FROM dual";
+    private static final String EXISTS_QUERY = "SELECT 1 FROM criteres_evaluation WHERE numero = ?";
+    private static final String COUNT_QUERY = "SELECT COUNT(*) FROM criteres_evaluation";
 
+    private final Connection connection;
     private Map<Integer, EvaluationCriteria> evaluationCriteriaCache = new HashMap<>();
 
     public EvaluationCriteriaMapper(Connection connection) {
@@ -41,9 +49,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
             return this.evaluationCriteriaCache.get(id);
         }
 
-        String selectQuery = "SELECT * FROM criteres_evaluation WHERE numero = ?";
-
-        try (PreparedStatement s = connection.prepareStatement(selectQuery)) {
+        try (PreparedStatement s = connection.prepareStatement(SELECT_BY_ID)) {
             s.setInt(1, id);
 
             try (ResultSet rs = s.executeQuery()) {
@@ -61,9 +67,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
     public Set<EvaluationCriteria> findAll() {
         resetCache();
         Set<EvaluationCriteria> criteriaSet = new HashSet<>();
-        String selectQuery = "SELECT * FROM criteres_evaluation";
-
-        try (PreparedStatement s = connection.prepareStatement(selectQuery);
+        try (PreparedStatement s = connection.prepareStatement(SELECT_ALL );
              ResultSet rs = s.executeQuery()) {
 
             while (rs.next()) {
@@ -82,10 +86,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
         if (!(object instanceof EvaluationCriteria criteria)) {
             throw new IllegalArgumentException("Object must be an instance of EvaluationCriteria");
         }
-
-        String insertQuery = "INSERT INTO criteres_evaluation (numero, nom, description) VALUES (?, ?, ?)";
-
-        try (PreparedStatement stmt = connection.prepareStatement(insertQuery)) {
+        try (PreparedStatement stmt = connection.prepareStatement(INSERT_QUERY )) {
             int nextId = getSequenceValue();
 
             stmt.setInt(1, nextId);
@@ -110,10 +111,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
         if (!(object instanceof EvaluationCriteria criteria)) {
             throw new IllegalArgumentException("Object must be an instance of EvaluationCriteria");
         }
-
-        String updateQuery = "UPDATE criteres_evaluation SET nom = ?, description = ? WHERE numero = ?";
-
-        try (PreparedStatement ps = connection.prepareStatement(updateQuery)) {
+        try (PreparedStatement ps = connection.prepareStatement(UPDATE_QUERY )) {
             ps.setString(1, criteria.getName());
             ps.setString(2, criteria.getDescription());
             ps.setInt(3, criteria.getId());
@@ -132,10 +130,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
         if (!(object instanceof EvaluationCriteria criteria)) {
             throw new IllegalArgumentException("Object must be an instance of EvaluationCriteria");
         }
-
-        String deleteQuery = "DELETE FROM criteres_evaluation WHERE numero = ?";
-
-        try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+        try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY )) {
             ps.setInt(1, criteria.getId());
 
             int rowsDeleted = ps.executeUpdate();
@@ -153,9 +148,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
 
     @Override
     public boolean deleteById(int id) {
-        String deleteQuery = "DELETE FROM criteres_evaluation WHERE numero = ?";
-
-        try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
+        try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY )) {
             ps.setInt(1, id);
             int rowsDeleted = ps.executeUpdate();
 
@@ -172,16 +165,16 @@ public class EvaluationCriteriaMapper extends AbstractMapper {
 
     @Override
     protected String getSequenceQuery() {
-        return "SELECT SEQ_CRITERES_EVALUATION.NEXTVAL FROM dual";
+        return SEQUENCE_QUERY ;
     }
 
     @Override
     protected String getExistsQuery() {
-        return "SELECT 1 FROM criteres_evaluation WHERE numero = ?";
+        return  EXISTS_QUERY ;
     }
 
     @Override
     protected String getCountQuery() {
-        return "SELECT COUNT(*) FROM criteres_evaluation";
+        return COUNT_QUERY;
     }
 }
