@@ -19,9 +19,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
     private CityMapper cityMapper;
     private BasicEvaluationMapper basicEvaluationMapper;
 
-    private Map<Integer, Restaurant> restaurantsCache = new HashMap<>(); //identity map
-
-    private Restaurant addToCache(ResultSet rs) throws SQLException {
+    private Restaurant mapRow(ResultSet rs) throws SQLException {
         int id = rs.getInt("NUMERO");
             Restaurant restaurant = new Restaurant();
             restaurant.setId(id);
@@ -56,16 +54,15 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public Restaurant findById(int id) {
-        if (restaurantsCache.containsKey(id)) {
-            return restaurantsCache.get(id);
-        }
+        Restaurant restaurantCache = getFromCache(id);
+        if (!isCacheEmpty()) return restaurantCache;
         String sql= "SELECT * FROM restaurants WHERE numero = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
 
-                    Restaurant restaurant = addToCache(rs);
+                    Restaurant restaurant = mapRow(rs);
 
                     Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
                     Set<Evaluation> evaluations = new HashSet<>(completeEvaluations);
@@ -90,7 +87,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                Restaurant restaurant = addToCache(rs);
+                Restaurant restaurant = mapRow(rs);
 
                 if (restaurant.getEvaluations() == null) {
                     Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
@@ -119,7 +116,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Restaurant restaurant = addToCache(rs);
+                    Restaurant restaurant = mapRow(rs);
 
                     if (restaurant.getEvaluations() == null) {
                         Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
@@ -147,7 +144,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Restaurant restaurant = addToCache(rs);
+                    Restaurant restaurant = mapRow(rs);
 
                     if (restaurant.getEvaluations() == null) {
                         Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
@@ -173,7 +170,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
             ps.setString(1, "%" + name + "%");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    Restaurant restaurant = addToCache(rs);
+                    Restaurant restaurant = mapRow(rs);
 
                     if (restaurant.getEvaluations() == null) {
                         Set<CompleteEvaluation> completeEvaluations = completeEvaluationMapper.findByRestaurant(restaurant);
