@@ -27,9 +27,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
         this.connection = connection;
     }
 
-    private Map<Integer, RestaurantType> typeCache = new HashMap<>();
-
-    private RestaurantType addToCache(ResultSet rs) throws SQLException {
+    private RestaurantType mapRow(ResultSet rs) throws SQLException {
         int id = rs.getInt("NUMERO");
 
             RestaurantType type = new RestaurantType();
@@ -43,14 +41,13 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
 
     @Override
     public RestaurantType findById(int id) {
-        if (typeCache.containsKey(id)) {
-            return typeCache.get(id);
-        }
+        RestaurantType cacheRestaurantType = getFromCache(id);
+        if (!isCacheEmpty()) return cacheRestaurantType;
         try (PreparedStatement ps = connection.prepareStatement(FIND_BY_ID_QUERY)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    RestaurantType type = addToCache(rs);
+                    RestaurantType type = mapRow(rs);
                     return type;
                 }
             }
@@ -68,7 +65,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                RestaurantType type = addToCache(rs);
+                RestaurantType type = mapRow(rs);
 
                 types.add(type);
             }

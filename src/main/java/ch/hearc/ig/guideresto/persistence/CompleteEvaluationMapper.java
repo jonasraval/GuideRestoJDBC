@@ -14,8 +14,6 @@ public class CompleteEvaluationMapper  extends AbstractMapper<CompleteEvaluation
     private GradeMapper gradeMapper;
     private EvaluationCriteriaMapper evaluationCriteriaMapper;
 
-    private Map<Integer, CompleteEvaluation> completeEvaluationCache = new HashMap<>();
-
     public CompleteEvaluationMapper(Connection connection) {
         this.connection = connection;
     }
@@ -32,7 +30,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper<CompleteEvaluation
         this.evaluationCriteriaMapper = evaluationCriteriaMapper;
     }
 
-    private CompleteEvaluation addToCache(ResultSet rs) throws SQLException {
+    private CompleteEvaluation mapRow(ResultSet rs) throws SQLException {
         int id = rs.getInt("NUMERO");
             CompleteEvaluation completeEvaluation = new CompleteEvaluation();
             completeEvaluation.setId(id);
@@ -63,9 +61,8 @@ public class CompleteEvaluationMapper  extends AbstractMapper<CompleteEvaluation
 
     @Override
     public CompleteEvaluation findById(int id) {
-        if (completeEvaluationCache.containsKey(id)) {
-            return completeEvaluationCache.get(id);
-        }
+        CompleteEvaluation cacheCompleteEvaluation = getFromCache(id);
+        if (!isCacheEmpty()) return cacheCompleteEvaluation;
 
         String selectQuery = "SELECT * FROM commentaires WHERE NUMERO = ?";
 
@@ -73,7 +70,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper<CompleteEvaluation
             s.setInt(1,id);
             try (ResultSet rs = s.executeQuery()) {
                 if (rs.next()) {
-                    return addToCache(rs);
+                    return mapRow(rs);
                 }
             }
         } catch (SQLException e) {

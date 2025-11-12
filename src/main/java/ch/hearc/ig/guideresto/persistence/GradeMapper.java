@@ -11,7 +11,6 @@ import java.util.*;
 public class GradeMapper extends AbstractMapper<Grade> {
     private final Connection connection;
 
-    private Map<Integer, Grade> gradeCache = new HashMap<>();
 
     private EvaluationCriteriaMapper evaluationCriteriaMapper;
     private CompleteEvaluationMapper completeEvaluationMapper;
@@ -28,7 +27,7 @@ public class GradeMapper extends AbstractMapper<Grade> {
         this.completeEvaluationMapper = completeEvaluationMapper;
     }
 
-    private Grade addToCache(ResultSet rs) throws SQLException {
+    private Grade mapRow(ResultSet rs) throws SQLException {
         int id = rs.getInt("NUMERO");
 
         Grade grade = new Grade();
@@ -56,9 +55,8 @@ public class GradeMapper extends AbstractMapper<Grade> {
 
     @Override
     public Grade findById(int id) {
-        if (this.gradeCache.containsKey(id)) {
-            return this.gradeCache.get(id);
-        }
+        Grade cacheGrade = getFromCache(id);
+        if(!isCacheEmpty()) return cacheGrade;
 
         String selectQuery = "SELECT * FROM notes WHERE numero = ?";
 
@@ -66,7 +64,7 @@ public class GradeMapper extends AbstractMapper<Grade> {
                 s.setInt(1, id);
                 try (ResultSet rs = s.executeQuery()) {
                     if (rs.next()) {
-                        return addToCache(rs);
+                        return mapRow(rs);
                     }
                 }
         } catch (SQLException e) {
@@ -113,7 +111,7 @@ public class GradeMapper extends AbstractMapper<Grade> {
              ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
-                Grade grade = addToCache(rs);
+                Grade grade = mapRow(rs);
                 grades.add(grade);
             }
 

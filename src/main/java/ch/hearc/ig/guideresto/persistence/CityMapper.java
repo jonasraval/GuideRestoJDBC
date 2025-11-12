@@ -24,9 +24,7 @@ public class CityMapper extends AbstractMapper<City>{
 
     private final Connection connection;
 
-    private Map<Integer, City> cityCache = new HashMap<>();//identity map
-
-    private City addToCache(ResultSet rs) throws SQLException {
+    private City mapRow(ResultSet rs) throws SQLException {
         City city = new City();
         city.setId(rs.getInt("NUMERO"));
         city.setCityName(rs.getString("NOM_VILLE"));
@@ -44,14 +42,13 @@ public class CityMapper extends AbstractMapper<City>{
 
     @Override
     public City findById(int id) {
-        if (this.cityCache.containsKey(id)) {
-            return this.cityCache.get(id);
-        }
+        City cacheCity = getFromCache(id);
+        if (!isCacheEmpty()) return cacheCity;
         try (PreparedStatement ps = connection.prepareStatement(SELECT_BY_ID)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return addToCache(rs);
+                    return mapRow(rs);
                 }
             }
         } catch (SQLException e) {
@@ -68,7 +65,7 @@ public class CityMapper extends AbstractMapper<City>{
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
-                City city = addToCache(rs);
+                City city = mapRow(rs);
                 cities.add(city);
             }
 

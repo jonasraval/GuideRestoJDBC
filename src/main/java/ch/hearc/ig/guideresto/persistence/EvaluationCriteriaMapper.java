@@ -7,21 +7,17 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 public class EvaluationCriteriaMapper extends AbstractMapper<EvaluationCriteria> {
     private final Connection connection;
 
-    private Map<Integer, EvaluationCriteria> evaluationCriteriaCache = new HashMap<>();
-
     public EvaluationCriteriaMapper(Connection connection) {
         this.connection = connection;
     }
 
-    private EvaluationCriteria addToCache(ResultSet rs) throws SQLException {
+    private EvaluationCriteria mapRow(ResultSet rs) throws SQLException {
         int id = rs.getInt("NUMERO");
 
         EvaluationCriteria evaluationCriteria = new EvaluationCriteria();
@@ -37,9 +33,8 @@ public class EvaluationCriteriaMapper extends AbstractMapper<EvaluationCriteria>
 
     @Override
     public EvaluationCriteria findById(int id) {
-        if (this.evaluationCriteriaCache.containsKey(id)) {
-            return this.evaluationCriteriaCache.get(id);
-        }
+        EvaluationCriteria cacheEvaluationCriteria = getFromCache(id);
+        if (!isCacheEmpty()) return cacheEvaluationCriteria;
 
         String selectQuery = "SELECT * FROM criteres_evaluation WHERE numero = ?";
 
@@ -48,7 +43,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper<EvaluationCriteria>
 
             try (ResultSet rs = s.executeQuery()) {
                 if (rs.next()) {
-                    return addToCache(rs);
+                    return mapRow(rs);
                 }
             }
         } catch (SQLException e) {
@@ -67,7 +62,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper<EvaluationCriteria>
              ResultSet rs = s.executeQuery()) {
 
             while (rs.next()) {
-                criteriaSet.add(addToCache(rs));
+                criteriaSet.add(mapRow(rs));
             }
 
         } catch (SQLException e) {

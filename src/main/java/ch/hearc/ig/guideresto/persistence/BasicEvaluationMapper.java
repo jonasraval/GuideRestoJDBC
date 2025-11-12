@@ -1,7 +1,6 @@
 package ch.hearc.ig.guideresto.persistence;
 
 import ch.hearc.ig.guideresto.business.BasicEvaluation;
-import ch.hearc.ig.guideresto.business.Restaurant;
 
 import java.sql.*;
 import java.util.*;
@@ -21,8 +20,6 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
     private final Connection connection;
     private RestaurantMapper restaurantMapper;
 
-    private Map<Integer, BasicEvaluation> basicEvaluationCache = new HashMap<>();
-
     public BasicEvaluationMapper(Connection connection) {
         this.connection = connection;
     }
@@ -31,7 +28,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
         this.restaurantMapper = restaurantMapper;
     }
 
-    private BasicEvaluation addToCache(ResultSet rs) throws SQLException{
+    private BasicEvaluation mapRow(ResultSet rs) throws SQLException{
         int id = rs.getInt("NUMERO");
         BasicEvaluation basicEvaluation = new BasicEvaluation();
         basicEvaluation.setId(id);
@@ -51,15 +48,14 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
 
     @Override
     public BasicEvaluation findById(int id) {
-        if (basicEvaluationCache.containsKey(id)) {
-            return basicEvaluationCache.get(id);
-        }
+        BasicEvaluation cacheBasicEvaluation = getFromCache(id);
+        if (!isCacheEmpty()) return cacheBasicEvaluation;
 
         try (PreparedStatement ps = connection.prepareStatement(SELECT_BY_ID_QUERY)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return addToCache(rs);
+                    return mapRow(rs);
                 }
             }
         } catch (SQLException e) {
@@ -76,7 +72,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
         try (PreparedStatement ps = connection.prepareStatement(SELECT_ALL_QUERY);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
-                basicEvaluationSet.add(addToCache(rs));
+                basicEvaluationSet.add(mapRow(rs));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Erreur : " +e.getMessage());
