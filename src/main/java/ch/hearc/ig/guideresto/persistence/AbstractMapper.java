@@ -119,6 +119,10 @@ public abstract class AbstractMapper<T extends IBusinessObject> {
         }
     }
 
+    protected T getFromCache(int id){
+        return cache.get(id);
+    }
+
     /**
      * Retire un objet du cache
      * @param id l'ID de l'objet à retirer du cache
