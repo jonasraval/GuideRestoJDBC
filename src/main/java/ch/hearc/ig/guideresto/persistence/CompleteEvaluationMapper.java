@@ -3,9 +3,7 @@ package ch.hearc.ig.guideresto.persistence;
 import ch.hearc.ig.guideresto.business.*;
 
 import java.sql.*;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 public class CompleteEvaluationMapper  extends AbstractMapper<CompleteEvaluation>{
@@ -62,7 +60,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper<CompleteEvaluation
     @Override
     public CompleteEvaluation findById(int id) {
         CompleteEvaluation cacheCompleteEvaluation = getFromCache(id);
-        if (!isCacheEmpty()) return cacheCompleteEvaluation;
+        if (cacheCompleteEvaluation != null) return cacheCompleteEvaluation;
 
         String selectQuery = "SELECT * FROM commentaires WHERE NUMERO = ?";
 
@@ -81,8 +79,6 @@ public class CompleteEvaluationMapper  extends AbstractMapper<CompleteEvaluation
 
     @Override
     public Set<CompleteEvaluation> findAll() {
-        resetCache();
-
         Set<CompleteEvaluation> evaluations = new HashSet<>();
         String selectQuery = "SELECT * FROM commentaires";
 
@@ -222,7 +218,6 @@ public class CompleteEvaluationMapper  extends AbstractMapper<CompleteEvaluation
 
             try (PreparedStatement ps = connection.prepareStatement(deleteQuery)) {
                 ps.setInt(1, evaluation.getId());
-                int rowsDeleted = ps.executeUpdate();
                 int rows = ps.executeUpdate();
                 if (rows > 0) {
                     removeFromCache(evaluation.getId());

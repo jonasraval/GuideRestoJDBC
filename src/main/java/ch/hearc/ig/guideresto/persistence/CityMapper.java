@@ -7,8 +7,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
-import java.util.Map;
-import java.util.HashMap;
 import java.util.Set;
 
 
@@ -43,7 +41,7 @@ public class CityMapper extends AbstractMapper<City>{
     @Override
     public City findById(int id) {
         City cacheCity = getFromCache(id);
-        if (!isCacheEmpty()) return cacheCity;
+        if (cacheCity != null) return cacheCity;
         try (PreparedStatement ps = connection.prepareStatement(SELECT_BY_ID)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
@@ -59,7 +57,6 @@ public class CityMapper extends AbstractMapper<City>{
 
     @Override
     public Set<City> findAll() {
-        resetCache();
         Set<City> cities = new HashSet<>();
         try (PreparedStatement ps = connection.prepareStatement(SELECT_ALL );
              ResultSet rs = ps.executeQuery()) {
@@ -131,8 +128,12 @@ public class CityMapper extends AbstractMapper<City>{
     public boolean deleteById(int id) {
         try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY )) {
             ps.setInt(1, id);
-            return ps.executeUpdate() > 0;
-
+            int rows = ps.executeUpdate();
+            if (rows > 0) {
+                removeFromCache(id);
+                return true;
+            }
+            return false;
         } catch (SQLException e) {
             System.err.println("Erreur de suppression de la ville: " + e.getMessage());
             return false;

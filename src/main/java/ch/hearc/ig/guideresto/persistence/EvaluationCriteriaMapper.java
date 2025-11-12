@@ -1,7 +1,6 @@
 package ch.hearc.ig.guideresto.persistence;
 
 import ch.hearc.ig.guideresto.business.EvaluationCriteria;
-import ch.hearc.ig.guideresto.business.IBusinessObject;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -34,7 +33,7 @@ public class EvaluationCriteriaMapper extends AbstractMapper<EvaluationCriteria>
     @Override
     public EvaluationCriteria findById(int id) {
         EvaluationCriteria cacheEvaluationCriteria = getFromCache(id);
-        if (!isCacheEmpty()) return cacheEvaluationCriteria;
+        if (cacheEvaluationCriteria != null) return cacheEvaluationCriteria;
 
         String selectQuery = "SELECT * FROM criteres_evaluation WHERE numero = ?";
 
@@ -54,7 +53,6 @@ public class EvaluationCriteriaMapper extends AbstractMapper<EvaluationCriteria>
 
     @Override
     public Set<EvaluationCriteria> findAll() {
-        resetCache();
         Set<EvaluationCriteria> criteriaSet = new HashSet<>();
         String selectQuery = "SELECT * FROM criteres_evaluation";
 
@@ -87,7 +85,9 @@ public class EvaluationCriteriaMapper extends AbstractMapper<EvaluationCriteria>
             int rowsInserted = stmt.executeUpdate();
 
             if (rowsInserted > 0) {
-                return new EvaluationCriteria(nextId, criteria.getName(), criteria.getDescription());
+                EvaluationCriteria criteria1 = new EvaluationCriteria(nextId, criteria.getName(), criteria.getDescription());
+                addToCache(criteria1);
+                return criteria1;
             } else {
                 throw new RuntimeException("Erreur d'insertion");
             }

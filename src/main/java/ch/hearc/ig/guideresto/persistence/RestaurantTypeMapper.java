@@ -6,9 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
@@ -42,7 +40,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
     @Override
     public RestaurantType findById(int id) {
         RestaurantType cacheRestaurantType = getFromCache(id);
-        if (!isCacheEmpty()) return cacheRestaurantType;
+        if (cacheRestaurantType != null) return cacheRestaurantType;
         try (PreparedStatement ps = connection.prepareStatement(FIND_BY_ID_QUERY)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
@@ -59,7 +57,6 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
 
     @Override
     public Set<RestaurantType> findAll() {
-        resetCache();
         Set<RestaurantType> types = new HashSet<>();
         try (PreparedStatement ps = connection.prepareStatement(FIND_ALL_QUERY);
              ResultSet rs = ps.executeQuery()) {

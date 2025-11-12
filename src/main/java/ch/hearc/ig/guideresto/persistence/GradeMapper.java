@@ -56,7 +56,7 @@ public class GradeMapper extends AbstractMapper<Grade> {
     @Override
     public Grade findById(int id) {
         Grade cacheGrade = getFromCache(id);
-        if(!isCacheEmpty()) return cacheGrade;
+        if(cacheGrade != null) return cacheGrade;
 
         String selectQuery = "SELECT * FROM notes WHERE numero = ?";
 
@@ -103,7 +103,6 @@ public class GradeMapper extends AbstractMapper<Grade> {
 
     @Override
     public Set findAll() {
-        resetCache();
         Set<Grade> grades = new HashSet<>();
         String selectQuery = "SELECT * FROM notes";
 
@@ -137,7 +136,9 @@ public class GradeMapper extends AbstractMapper<Grade> {
             int rowsInserted = stmt.executeUpdate();
 
             if (rowsInserted > 0) {
-                return new Grade(nextId, grade.getGrade(), grade.getEvaluation(), grade.getCriteria());
+                Grade created = new Grade(nextId, grade.getGrade(), grade.getEvaluation(), grade.getCriteria());
+                addToCache(created);
+                return created;
             }
 
         } catch (SQLException e) {

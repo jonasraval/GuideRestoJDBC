@@ -49,7 +49,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
     @Override
     public BasicEvaluation findById(int id) {
         BasicEvaluation cacheBasicEvaluation = getFromCache(id);
-        if (!isCacheEmpty()) return cacheBasicEvaluation;
+        if (cacheBasicEvaluation != null) return cacheBasicEvaluation;
 
         try (PreparedStatement ps = connection.prepareStatement(SELECT_BY_ID_QUERY)) {
             ps.setInt(1, id);
@@ -66,8 +66,6 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
 
     @Override
     public Set<BasicEvaluation> findAll() {
-        resetCache();
-
         Set<BasicEvaluation> basicEvaluationSet = new HashSet<>();
         try (PreparedStatement ps = connection.prepareStatement(SELECT_ALL_QUERY);
              ResultSet rs = ps.executeQuery()) {
@@ -109,7 +107,7 @@ public class BasicEvaluationMapper extends AbstractMapper<BasicEvaluation>{
                     eval.setId(rs.getInt(1));
                 }
             }
-
+            addToCache(eval);
             return eval;
 
         } catch (SQLException e) {
