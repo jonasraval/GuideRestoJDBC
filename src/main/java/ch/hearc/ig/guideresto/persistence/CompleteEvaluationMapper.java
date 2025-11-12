@@ -89,7 +89,7 @@ public class CompleteEvaluationMapper  extends AbstractMapper<CompleteEvaluation
         try (PreparedStatement s = connection.prepareStatement(selectQuery);
              ResultSet rs = s.executeQuery()) {
             while (rs.next()) {
-                evaluations.add(addToCache(rs));
+                evaluations.add(mapRow(rs));
             }
 
         } catch (SQLException e) {
