@@ -49,6 +49,10 @@ public class PersistanceContext implements AutoCloseable {
         }
     }
 
+    public Connection getConnection() {
+        return connection;
+    }
+
     public BasicEvaluationMapper getBasicEvaluationMapper() {
         return basicEvaluationMapper;
     }

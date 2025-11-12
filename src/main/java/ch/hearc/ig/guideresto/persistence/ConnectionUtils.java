@@ -34,7 +34,7 @@ public class ConnectionUtils {
 
             if (ConnectionUtils.connection == null || ConnectionUtils.connection.isClosed()) {
                 ConnectionUtils.connection = DriverManager.getConnection(url, username, password);
-                ConnectionUtils.connection.setAutoCommit(true);
+                ConnectionUtils.connection.setAutoCommit(false);
             }
         } catch (SQLException ex) {
             logger.error(ex.getMessage(), ex);
