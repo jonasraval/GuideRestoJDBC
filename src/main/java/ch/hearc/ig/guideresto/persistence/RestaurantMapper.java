@@ -12,8 +12,24 @@ import java.util.Map;
 import java.util.Set;
 
 public class RestaurantMapper extends AbstractMapper<Restaurant> {
-    private final Connection connection;
+    private static final String FIND_BY_ID_QUERY = "SELECT * FROM restaurants WHERE numero = ?";
+    private static final String FIND_ALL_QUERY = "SELECT * FROM RESTAURANTS";
+    private static final String FIND_BY_CITY_QUERY = """
+        SELECT r.*
+        FROM RESTAURANTS r
+        JOIN VILLES v ON r.FK_VILL = v.NUMERO
+        WHERE LOWER(v.NOM_VILLE) LIKE LOWER(?)
+    """;
+    private static final String FIND_BY_TYPE_QUERY = "SELECT * FROM RESTAURANTS WHERE FK_TYPE = ?";
+    private static final String FIND_BY_NAME_QUERY = "SELECT * FROM RESTAURANTS WHERE LOWER(NOM) LIKE LOWER(?)";
+    private static final String INSERT_QUERY = "INSERT INTO restaurants (NUMERO, NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) VALUES (SEQ_RESTAURANTS.NEXTVAL, ?, ?, ?, ?, ?, ?)";
+    private static final String UPDATE_QUERY = "UPDATE restaurants SET NOM = ?, ADRESSE = ?, DESCRIPTION = ?, SITE_WEB = ?, FK_TYPE = ?, FK_VILL = ? WHERE NUMERO = ?";
+    private static final String DELETE_QUERY = "DELETE FROM restaurants WHERE NUMERO = ?";
+    private static final String SEQUENCE_QUERY = "SELECT RESTAURANTS_SEQ.NEXTVAL FROM DUAL";
+    private static final String EXISTS_QUERY = "SELECT COUNT(*) FROM restaurants WHERE NUMERO = ?";
+    private static final String COUNT_QUERY = "SELECT COUNT(*) FROM restaurants";
 
+    private final Connection connection;
     private RestaurantTypeMapper restaurantTypeMapper;
     private CompleteEvaluationMapper completeEvaluationMapper;
     private CityMapper cityMapper;
@@ -59,8 +75,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
         if (restaurantsCache.containsKey(id)) {
             return restaurantsCache.get(id);
         }
-        String sql= "SELECT * FROM restaurants WHERE numero = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(FIND_BY_ID_QUERY)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -85,8 +100,8 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
     public Set<Restaurant> findAll() {
         resetCache();
         Set<Restaurant> restaurantSet = new HashSet<>();
-        String sql = "SELECT * FROM RESTAURANTS";
-        try (PreparedStatement ps = connection.prepareStatement(sql);
+
+        try (PreparedStatement ps = connection.prepareStatement(FIND_ALL_QUERY);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
@@ -107,14 +122,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     public Set<Restaurant> findByCity(String cityName) {
         Set<Restaurant> restaurantSet = new HashSet<>();
-        String sql = """
-        SELECT r.*
-        FROM RESTAURANTS r
-        JOIN VILLES v ON r.FK_VILL = v.NUMERO
-        WHERE LOWER(v.NOM_VILLE) LIKE LOWER(?)
-    """;
-
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(FIND_BY_CITY_QUERY)) {
             ps.setString(1, "%" + cityName + "%");
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -140,9 +148,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     public Set<Restaurant> findByType(int typeId) {
         Set<Restaurant> restaurantSet = new HashSet<>();
-        String sql = "SELECT * FROM RESTAURANTS WHERE FK_TYPE = ?";
-
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(FIND_BY_TYPE_QUERY)) {
             ps.setInt(1, typeId);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -167,9 +173,9 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     public Set<Restaurant> findByName(String name) {
         Set<Restaurant> restaurantSet = new HashSet<>();
-        String sql = "SELECT * FROM RESTAURANTS WHERE LOWER(NOM) LIKE LOWER(?)";
 
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+
+        try (PreparedStatement ps = connection.prepareStatement(FIND_BY_NAME_QUERY)) {
             ps.setString(1, "%" + name + "%");
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
@@ -196,9 +202,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public Restaurant create(Restaurant restaurant) {
-        String insertSql = "INSERT INTO restaurants (NUMERO, NOM, ADRESSE, DESCRIPTION, SITE_WEB, FK_TYPE, FK_VILL) " +
-                "VALUES (SEQ_RESTAURANTS.NEXTVAL, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = connection.prepareStatement(insertSql, new String[]{"NUMERO"})) {
+        try (PreparedStatement ps = connection.prepareStatement(INSERT_QUERY, new String[]{"NUMERO"})) {
             ps.setString(1, restaurant.getName());
             ps.setString(2, restaurant.getAddress().getStreet());
             ps.setString(3, restaurant.getDescription());
@@ -224,9 +228,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public boolean update(Restaurant restaurant) {
-        String sql = "UPDATE restaurants SET NOM = ?, ADRESSE = ?, DESCRIPTION = ?, SITE_WEB = ?, FK_TYPE = ?, FK_VILL = ? WHERE NUMERO = ?";
-
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(UPDATE_QUERY)) {
             ps.setString(1, restaurant.getName());
             ps.setString(2, restaurant.getAddress().getStreet());
             ps.setString(3, restaurant.getDescription());
@@ -246,9 +248,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public boolean delete(Restaurant restaurant) {
-        String sql = "DELETE FROM restaurants WHERE NUMERO = ?";
-
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY)) {
             ps.setInt(1, restaurant.getId());
             int rowsDeleted = ps.executeUpdate();
             if (rowsDeleted > 0) {
@@ -265,9 +265,7 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     public boolean deleteById(int id) {
-        String sql = "DELETE FROM restaurants WHERE NUMERO = ?";
-
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY)) {
             ps.setInt(1, id);
             int rowsDeleted = ps.executeUpdate();
 
@@ -285,17 +283,17 @@ public class RestaurantMapper extends AbstractMapper<Restaurant> {
 
     @Override
     protected String getSequenceQuery() {
-        return "SELECT RESTAURANTS_SEQ.NEXTVAL FROM DUAL";
+        return SEQUENCE_QUERY;
     }
 
     @Override
     protected String getExistsQuery() {
-        return "SELECT COUNT(*) FROM restaurants WHERE NUMERO = ?";
+        return EXISTS_QUERY;
     }
 
     @Override
     protected String getCountQuery() {
-        return "SELECT COUNT(*) FROM restaurants";
+        return COUNT_QUERY;
     }
 
     public void setCompleteEvaluationMapper(CompleteEvaluationMapper completeEvaluationMapper) {

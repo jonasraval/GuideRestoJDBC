@@ -12,6 +12,14 @@ import java.util.Map;
 import java.util.Set;
 
 public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
+    private static final String FIND_BY_ID_QUERY = "SELECT * FROM TYPES_GASTRONOMIQUES WHERE NUMERO = ?";
+    private static final String FIND_ALL_QUERY = "SELECT * FROM TYPES_GASTRONOMIQUES";
+    private static final String INSERT_QUERY = "INSERT INTO TYPES_GASTRONOMIQUES (LIBELLE, DESCRIPTION) VALUES (?, ?)";
+    private static final String UPDATE_QUERY = "UPDATE TYPES_GASTRONOMIQUES SET LIBELLE = ?, DESCRIPTION = ? WHERE NUMERO = ?";
+    private static final String DELETE_QUERY = "DELETE FROM TYPES_GASTRONOMIQUES WHERE NUMERO = ?";
+    private static final String SEQUENCE_QUERY = "SELECT TYPES_GASTRONOMIQUES_SEQ.NEXTVAL FROM DUAL";
+    private static final String EXISTS_QUERY = "SELECT COUNT(*) FROM TYPES_GASTRONOMIQUES WHERE NUMERO = ?";
+    private static final String COUNT_QUERY = "SELECT COUNT(*) FROM TYPES_GASTRONOMIQUES";
 
     private final Connection connection;
 
@@ -38,8 +46,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
         if (typeCache.containsKey(id)) {
             return typeCache.get(id);
         }
-        String sql = "SELECT * FROM TYPES_GASTRONOMIQUES WHERE NUMERO = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(FIND_BY_ID_QUERY)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -57,9 +64,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
     public Set<RestaurantType> findAll() {
         resetCache();
         Set<RestaurantType> types = new HashSet<>();
-        String sql = "SELECT * FROM TYPES_GASTRONOMIQUES";
-
-        try (PreparedStatement ps = connection.prepareStatement(sql);
+        try (PreparedStatement ps = connection.prepareStatement(FIND_ALL_QUERY);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
@@ -77,8 +82,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
 
     @Override
     public RestaurantType create(RestaurantType type) {
-        String sql = "INSERT INTO TYPES_GASTRONOMIQUES (LIBELLE, DESCRIPTION) VALUES (?, ?)";
-        try (PreparedStatement ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement ps = connection.prepareStatement(INSERT_QUERY, PreparedStatement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, type.getLabel());
             ps.setString(2, type.getDescription());
             ps.executeUpdate();
@@ -99,8 +103,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
 
     @Override
     public boolean update(RestaurantType type) {
-        String sql = "UPDATE TYPES_GASTRONOMIQUES SET LIBELLE = ?, DESCRIPTION = ? WHERE NUMERO = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(UPDATE_QUERY)) {
             ps.setString(1, type.getLabel());
             ps.setString(2, type.getDescription());
             ps.setInt(3, type.getId());
@@ -115,8 +118,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
 
     @Override
     public boolean delete(RestaurantType type) {
-        String sql = "DELETE FROM TYPES_GASTRONOMIQUES WHERE NUMERO = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY)) {
             ps.setInt(1, type.getId());
             int rowsDeleted = ps.executeUpdate();
             if (rowsDeleted > 0) {
@@ -133,8 +135,7 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
 
     @Override
     public boolean deleteById(int id) {
-        String sql = "DELETE FROM TYPES_GASTRONOMIQUES WHERE NUMERO = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY)) {
             ps.setInt(1, id);
             int rowsDeleted = ps.executeUpdate();
 
@@ -152,16 +153,16 @@ public class RestaurantTypeMapper extends AbstractMapper<RestaurantType> {
 
     @Override
     protected String getSequenceQuery() {
-        return "SELECT TYPES_GASTRONOMIQUES_SEQ.NEXTVAL FROM DUAL";
+        return SEQUENCE_QUERY ;
     }
 
     @Override
     protected String getExistsQuery() {
-        return "SELECT COUNT(*) FROM TYPES_GASTRONOMIQUES WHERE NUMERO = ?";
+        return EXISTS_QUERY ;
     }
 
     @Override
     protected String getCountQuery() {
-        return "SELECT COUNT(*) FROM TYPES_GASTRONOMIQUES";
+        return COUNT_QUERY ;
     }
 }

@@ -13,6 +13,14 @@ import java.util.Set;
 
 
 public class CityMapper extends AbstractMapper<City>{
+    private static final String SELECT_BY_ID = "SELECT * FROM VILLES WHERE NUMERO = ?";
+    private static final String SELECT_ALL = "SELECT * FROM VILLES";
+    private static final String INSERT_QUERY = "INSERT INTO VILLES (CODE_POSTAL, NOM_VILLE) VALUES (?, ?)";
+    private static final String UPDATE_QUERY = "UPDATE VILLES SET NOM_VILLE = ?, CODE_POSTAL = ? WHERE NUMERO = ?";
+    private static final String DELETE_QUERY = "DELETE FROM VILLES WHERE NUMERO = ?";
+    private static final String SEQUENCE_QUERY = "SELECT SEQ_VILLES.NEXTVAL FROM DUAL";
+    private static final String EXISTS_QUERY = "SELECT COUNT(*) FROM VILLES WHERE NUMERO = ?";
+    private static final String COUNT_QUERY = "SELECT COUNT(*) FROM VILLES";
 
     private final Connection connection;
 
@@ -39,8 +47,7 @@ public class CityMapper extends AbstractMapper<City>{
         if (this.cityCache.containsKey(id)) {
             return this.cityCache.get(id);
         }
-        String sql = "SELECT * FROM VILLES WHERE NUMERO = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(SELECT_BY_ID)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -57,8 +64,7 @@ public class CityMapper extends AbstractMapper<City>{
     public Set<City> findAll() {
         resetCache();
         Set<City> cities = new HashSet<>();
-        String sql = "SELECT * FROM VILLES";
-        try (PreparedStatement ps = connection.prepareStatement(sql);
+        try (PreparedStatement ps = connection.prepareStatement(SELECT_ALL );
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
@@ -74,8 +80,7 @@ public class CityMapper extends AbstractMapper<City>{
 
     @Override
     public City create(City city) {
-        String sql = "INSERT INTO VILLES (CODE_POSTAL, NOM_VILLE) VALUES (?, ?)";
-        try (PreparedStatement ps = connection.prepareStatement(sql, new String[] {"NUMERO"})) {
+        try (PreparedStatement ps = connection.prepareStatement(INSERT_QUERY , new String[] {"NUMERO"})) {
             ps.setString(1, city.getZipCode());
             ps.setString(2, city.getCityName());
 
@@ -97,8 +102,7 @@ public class CityMapper extends AbstractMapper<City>{
 
     @Override
     public boolean update(City city) {
-        String sql = "UPDATE VILLES SET NOM_VILLE = ?, CODE_POSTAL = ? WHERE NUMERO = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(UPDATE_QUERY )) {
             ps.setString(1, city.getCityName());
             ps.setString(2, city.getZipCode());
             ps.setInt(3, city.getId());
@@ -112,9 +116,7 @@ public class CityMapper extends AbstractMapper<City>{
 
     @Override
     public boolean delete(City city) {
-        String sql = "DELETE FROM VILLES WHERE NUMERO = ?";
-
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY )) {
             ps.setInt(1, city.getId());
             int rows = ps.executeUpdate();
             if (rows > 0) {
@@ -130,8 +132,7 @@ public class CityMapper extends AbstractMapper<City>{
 
     @Override
     public boolean deleteById(int id) {
-        String sql = "DELETE FROM VILLES WHERE NUMERO = ?";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps = connection.prepareStatement(DELETE_QUERY )) {
             ps.setInt(1, id);
             return ps.executeUpdate() > 0;
 
@@ -143,16 +144,16 @@ public class CityMapper extends AbstractMapper<City>{
 
     @Override
     protected String getSequenceQuery() {
-        return "SELECT SEQ_VILLES.NEXTVAL FROM DUAL";
+        return SEQUENCE_QUERY ;
     }
 
     @Override
     protected String getExistsQuery() {
-        return "SELECT COUNT(*) FROM VILLES WHERE NUMERO = ?";
+        return EXISTS_QUERY ;
     }
 
     @Override
     protected String getCountQuery() {
-        return "SELECT COUNT(*) FROM VILLES";
+        return COUNT_QUERY ;
     }
 }
